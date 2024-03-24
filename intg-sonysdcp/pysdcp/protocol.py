@@ -8,7 +8,7 @@ ACTIONS = {
 
 #Command
 
-#Fire and forget, nor response from the projector
+#Fire and forget, no response from the projector
 COMMANDS_IR = {
     #PROJECTOR=17, PROJECTOR-E=19, PROJECTOR-EE=1B
     "MENU": 0x1729,
@@ -16,7 +16,7 @@ COMMANDS_IR = {
     "CURSOR_LEFT": 0x1734,
     "CURSOR_UP": 0x1735,
     "CURSOR_DOWN": 0x1736,
-    "ENTER": 0x175A,
+    "CURSOR_ENTER": 0x175A,
     "LENS_SHIFT_UP": 0x1772,
     "LENS_SHIFT_DOWN": 0x1773,
     "LENS_SHIFT_LEFT": 0x1902,
@@ -139,7 +139,7 @@ STATUS = {
     "ON": 0x0001,
 }
 
-MENU_POSTION= {
+MENU_POSITIONS= {
     "BOTTOM_LEFT": 0x0000,
     "CENTER": 0x0001,
 }

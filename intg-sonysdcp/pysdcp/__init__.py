@@ -190,6 +190,13 @@ class Projector:
         self._send_command(action=ACTIONS["SET"], command=COMMANDS["INPUT"],
                            data=INPUTS["HDMI1"] if hdmi_num == 1 else INPUTS["HDMI2"])
         return True
+    
+    def get_input(self):
+        data = self._send_command(action=ACTIONS["GET"], command=COMMANDS["INPUT"])
+        if data == INPUTS["HDMI1"]:
+            return "HDMI 1"
+        elif data == INPUTS["HDMI2"]:
+            return "HDMI 2"
 
     def set_screen(self, command: str, value: str):
         valid_values = self.SCREEN_SETTINGS.get(command)
@@ -209,6 +216,28 @@ class Projector:
             return False
         else:
             return True
+        
+    def get_muting(self):
+        data = self._send_command(action=ACTIONS["GET"], command=COMMANDS["PICTURE_MUTING"])
+        if data == PICTURE_MUTING["OFF"]:
+            return False
+        else:
+            return True
+        
+    def set_muting(self, on=True):
+        self._send_command(action=ACTIONS["SET"], command=COMMANDS["PICTURE_MUTING"],
+                           data=PICTURE_MUTING["ON"] if on else PICTURE_MUTING["OFF"])
+        return True
+    
+    def set_aspect(self, aspect):
+        self._send_command(action=ACTIONS["SET"], command=COMMANDS["ASPECT_RATIO"],
+                           data=ASPECT_RATIOS[aspect])
+        return True
+    
+    def set_preset(self, preset):
+        self._send_command(action=ACTIONS["SET"], command=COMMANDS["CALIBRATION_PRESET"],
+                           data=CALIBRATION_PRESETS[preset])
+        return True
 
 
 if __name__ == '__main__':

@@ -396,3 +396,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# pySDCP test file
+intg-sonysdcp/pysdcp_test.py
