@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+### Fixed
+- Added a missing comma that was causing two simple commands to show as a single command
+
 ## [0.1-beta] - 2024-03-24
 
 ### Added
