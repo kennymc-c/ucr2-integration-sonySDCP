@@ -318,7 +318,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
             "MODE_PRESET_BRIGHT_CINEMA" | \
             "MODE_PRESET_BRIGHT_TV" | \
             "MODE_PRESET_USER":
-                preset = cmd_name.replace("MODE_PICTURE_", "")
+                preset = cmd_name.replace("MODE_PRESET_", "")
                 try:
                     if projector.set_preset(preset):
                         return ucapi.StatusCodes.OK

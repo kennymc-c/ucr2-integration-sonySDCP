@@ -399,3 +399,4 @@ FodyWeavers.xsd
 
 # pySDCP test file
 intg-sonysdcp/pysdcp_test.py
+intg-sonysdcp/config.json
