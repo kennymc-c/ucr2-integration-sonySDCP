@@ -10,7 +10,7 @@ Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to cont
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
-<!--  #TODO Create pull request for pySDCP modifications and link it here until it has been merged  -->
+<!--  #TODO Create pull request for pySDCP modifications and remove files when it has been merged  -->
 
 ### Supported commands:
 
