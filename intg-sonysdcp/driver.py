@@ -167,7 +167,7 @@ def add_media_player(id, name):
                 "MODE_PRESET_GAME",
                 "MODE_PRESET_BRIGHT_CINEMA",
                 "MODE_PRESET_BRIGHT_TV",
-                "MODE_PRESET_USER"
+                "MODE_PRESET_USER",
                 "MODE_ASPECT_RATIO_NORMAL",
                 "MODE_ASPECT_RATIO_V_STRETCH",
                 "MODE_ASPECT_RATIO_ZOOM_1_85",
