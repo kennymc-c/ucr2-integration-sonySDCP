@@ -1,11 +1,11 @@
 {
-    "driver_id": "sonysdcp",
-    "version": "0.1",
+    "driver_id": "sonysdcp-test",
+    "version": "0.1-test",
     "release_date": "2024-03-24",
-    "min_core_api": "0.31.3",
+    "min_core_api": "0.24.3",
     "name": { 
-        "en": "Sony Projector",
-        "de": "Sony Projektor"
+        "en": "Sony Projector Test",
+        "de": "Sony Projektor Test"
       },
     "icon": "uc:camera",
     "description": {
