@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Added a missing comma that was causing two simple commands to show as a single command
 - Fixed a naming problem for picture presets
+- Corrected minimum WS Core API version in setup.json to 0.24.3. Previous version was a REST API version number
 
 ## [0.1-beta] - 2024-03-24
 
