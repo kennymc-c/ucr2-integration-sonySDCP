@@ -13,7 +13,7 @@ import pysdcp
 from pysdcp.protocol import *
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
-CFG_FILENAME = "config.json"
+CFG_FILENAME = "config-test.json"
 ID_DEFAULT = "sony-projector"
 NAME_DEFAULT = '{"en": "Sony Projector", "de": "Sony Projektor"}'
 
@@ -50,8 +50,10 @@ def get_info(ip):
         
         try:
             if config["id"] != "" and config["name"] != "" :
-                info = [config["id"], config["name"]]
-                return print(info)
+                id = config["id"]
+                name = config["name"]
+                info = [id, name]
+                return info
             else:
                 print("Error in " + CFG_FILENAME + ". No entity id or name found")
                 return False
@@ -66,26 +68,31 @@ def get_info(ip):
         else:
             projector = pysdcp.Projector(ip)
             print("Query serial number and model name from projector via SDAP advertisement service. This may take up to 30 seconds")
+            #TODO Also mention this in the setup dialog when entering the ip
 
             if projector.get_serial():
-                serial = print(projector.get_serial())
-                model = print(projector.get_model())
+                #TODO Get serial and name from a single function that returns a list. Otherwise there will be a setup timeout from the remote side
+                serial = projector.get_serial()
+                model = projector.get_model()
 
                 print("Store serial number and model name as id and name into " + CFG_FILENAME)
                 id_json={"id": serial}
                 name_json={"name": model}
-                with open(CFG_FILENAME, "w") as f:
-                    json.dump(id_json, f)
-                    json.dump(name_json, f)
-
-                return print(load_info())
+                try:
+                    with open(CFG_FILENAME, "a") as f:
+                        json.dump(id_json, f)
+                        json.dump(name_json, f)
+                    return print(load_info())
+                except:
+                    print("Error storing id and name into " + CFG_FILENAME)
+                    return False
 
             else:
                 print("Could not query serial number from projector. Check if SDAP advertisement service is turned on")
                 print("Store default values")
-                id_json={"id": ID_DEFAULT}
-                name_json={"name": NAME_DEFAULT}
-                with open(CFG_FILENAME, "w") as f:
+                id_json='"id": ID_DEFAULT'
+                name_json='"name": NAME_DEFAULT'
+                with open(CFG_FILENAME, "a") as f:
                     json.dump(id_json, f)
                     json.dump(name_json, f)
 
@@ -134,36 +141,106 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     #Check if ip address has been entered
     if msg.setup_data["ip"] != "":
 
+        #Check if input is a valid ipv4 or ipv6 address
         try:
-            #Check if input is a valid ipv4 or ipv6 address
             ip_object = ipaddress.ip_address(msg.setup_data["ip"])
-
-            print(f"Chosen ip address: " + msg.setup_data["ip"])
-    
-            #Create Python dictionary for ip address
-            ip = {"ip": msg.setup_data["ip"]}
-
-            #Convert and store into Json config file
-            with open(CFG_FILENAME, "w") as f:
-                json.dump(ip, f)
-
-            print("IP address stored in " + CFG_FILENAME)
-
-            #Add entities with their corresponding command handler
-            #TODO Generate entity id from MAC address
-            #TODO Generate entity name from model name via pySDCP
-            print("Add media player entity from ip " + ip)
-            add_media_player(ip)
-
-            print(f"Setup complete")
-            return ucapi.SetupComplete()
-        
         except ValueError:
             print("The entered ip address \"" + msg.setup_data["ip"] + "\" is not valid")
             return ucapi.SetupError()
 
+        print(f"Chosen ip address: " + msg.setup_data["ip"])
+
+        #Create Python dictionary for ip address
+        ip = msg.setup_data["ip"]
+        ip_json = {"ip": msg.setup_data["ip"]}
+
+        #Convert and store ip address into Json config file
+        with open(CFG_FILENAME, "w") as f:
+            json.dump(ip_json, f)
+
+        print("IP address stored in " + CFG_FILENAME)
+
+        #Add entities with their corresponding command handler
+        #TODO Generate entity id from MAC address
+        #TODO Generate entity name from model name via pySDCP
+        print("Add media player entity from ip " + ip)
+        mp_add = add_media_player(ip)
+        if mp_add == False:
+            return ucapi.SetupError()
+        else:
+            print(f"Setup complete")
+            return ucapi.SetupComplete()
+
     print("No or no valid IP address has been entered")
     return ucapi.SetupError()
+
+
+
+def add_media_player(ip):
+    
+    try:
+        info = get_info(ip)
+        id = info[1]
+        name = info[2]
+
+        features = [
+            ucapi.media_player.Features.ON_OFF, 
+            ucapi.media_player.Features.TOGGLE, 
+            ucapi.media_player.Features.MUTE,
+            ucapi.media_player.Features.UNMUTE,
+            ucapi.media_player.Features.MUTE_TOGGLE,
+            ucapi.media_player.Features.DPAD, 
+            ucapi.media_player.Features.HOME, 
+            ucapi.media_player.Features.SELECT_SOURCE
+            ]
+
+        media_player = ucapi.MediaPlayer(
+            id, 
+            name, 
+            features, 
+            attributes={
+                ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN, 
+                ucapi.media_player.Attributes.MUTED: False,
+                ucapi.media_player.Attributes.SOURCE: "", 
+                ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
+            },
+            device_class=ucapi.media_player.DeviceClasses.TV, 
+            options={
+                ucapi.media_player.Options.SIMPLE_COMMANDS: [
+                    "MODE_PRESET_REF",
+                    "MODE_PRESET_TV",
+                    "MODE_PRESET_PHOTO",
+                    "MODE_PRESET_GAME",
+                    "MODE_PRESET_BRIGHT_CINEMA",
+                    "MODE_PRESET_BRIGHT_TV",
+                    "MODE_PRESET_USER",
+                    "MODE_ASPECT_RATIO_NORMAL",
+                    "MODE_ASPECT_RATIO_V_STRETCH",
+                    "MODE_ASPECT_RATIO_ZOOM_1_85",
+                    "MODE_ASPECT_RATIO_ZOOM_2_35",
+                    "MODE_ASPECT_RATIO_STRETCH",
+                    "MODE_ASPECT_RATIO_SQUEEZE",
+                    "MODE_PRESET_CINEMA_FILM_1",
+                    "MODE_PRESET_CINEMA_FILM_2",
+                    "LENS_SHIFT_UP",
+                    "LENS_SHIFT_DOWN",
+                    "LENS_SHIFT_LEFT",
+                    "LENS_SHIFT_RIGHT",
+                    "LENS_FOCUS_FAR",
+                    "LENS_FOCUS_NEAR",
+                    "LENS_ZOOM_LARGE",
+                    "LENS_ZOOM_SMALL",
+                ]
+            },
+            cmd_handler=mp_cmd_handler
+        )
+        
+        api.available_entities.add(media_player)
+
+    except:
+        print("Error during creation of media player entity")
+        return False
+
 
 
 
@@ -188,68 +265,6 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
         return ucapi.StatusCodes.CONFLICT
     
     return mp_cmd_assigner(entity.id, cmd_id, _params, ip)
-
-
-
-def add_media_player(ip):
-        
-    info = get_info(ip)
-    id = info[1]
-    name = info[2]
-
-    features = [
-        ucapi.media_player.Features.ON_OFF, 
-        ucapi.media_player.Features.TOGGLE, 
-        ucapi.media_player.Features.MUTE,
-        ucapi.media_player.Features.UNMUTE,
-        ucapi.media_player.Features.MUTE_TOGGLE,
-        ucapi.media_player.Features.DPAD, 
-        ucapi.media_player.Features.HOME, 
-        ucapi.media_player.Features.SELECT_SOURCE
-        ]
-
-    media_player = ucapi.MediaPlayer(
-        id, 
-        name, 
-        features, 
-        attributes={
-            ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN, 
-            ucapi.media_player.Attributes.MUTED: False,
-            ucapi.media_player.Attributes.SOURCE: "", 
-            ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
-        },
-        device_class=ucapi.media_player.DeviceClasses.TV, 
-        options={
-            ucapi.media_player.Options.SIMPLE_COMMANDS: [
-                "MODE_PRESET_REF",
-                "MODE_PRESET_TV",
-                "MODE_PRESET_PHOTO",
-                "MODE_PRESET_GAME",
-                "MODE_PRESET_BRIGHT_CINEMA",
-                "MODE_PRESET_BRIGHT_TV",
-                "MODE_PRESET_USER",
-                "MODE_ASPECT_RATIO_NORMAL",
-                "MODE_ASPECT_RATIO_V_STRETCH",
-                "MODE_ASPECT_RATIO_ZOOM_1_85",
-                "MODE_ASPECT_RATIO_ZOOM_2_35",
-                "MODE_ASPECT_RATIO_STRETCH",
-                "MODE_ASPECT_RATIO_SQUEEZE",
-                "MODE_PRESET_CINEMA_FILM_1",
-                "MODE_PRESET_CINEMA_FILM_2",
-                "LENS_SHIFT_UP",
-                "LENS_SHIFT_DOWN",
-                "LENS_SHIFT_LEFT",
-                "LENS_SHIFT_RIGHT",
-                "LENS_FOCUS_FAR",
-                "LENS_FOCUS_NEAR",
-                "LENS_ZOOM_LARGE",
-                "LENS_ZOOM_SMALL",
-            ]
-        },
-        cmd_handler=mp_cmd_handler
-    )
-    
-    api.available_entities.add(media_player)
 
 
 

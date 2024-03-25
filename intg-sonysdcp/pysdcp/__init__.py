@@ -194,6 +194,8 @@ class Projector:
         self.ip = addr[0]
         self.is_init = True
 
+    #TODO Get serial and name from a single function that returns a list
+
     def get_serial(self, udp_ip: str = None, udp_port: int = None, timeout=None):
 
         self.UDP_PORT = udp_port if udp_port is not None else self.UDP_PORT
@@ -210,7 +212,7 @@ class Projector:
         except socket.timeout as e:
             return False
         
-        serial = unpack('>I', SDAP_buffer[20:24])[0]
+        serial = str(unpack('>I', SDAP_buffer[20:24])[0])
 
         return serial
     
