@@ -6,7 +6,6 @@ from typing import Any
 
 import ucapi
 import json
-#import time
 import os
 import ipaddress
 
@@ -15,13 +14,87 @@ from pysdcp.protocol import *
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
 CFG_FILENAME = "config.json"
-ID = "sony-projector"
-NAME = "Sony Projector"
+ID_DEFAULT = "sony-projector"
+NAME_DEFAULT = '{"en": "Sony Projector", "de": "Sony Projektor"}'
 
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
         
 #TODO Split up driver.py into separate files
+
+
+
+def get_ip():
+    #Check if confg json file exists
+    if os.path.isfile(CFG_FILENAME):
+
+        #Load ip address from config json file
+        with open(CFG_FILENAME, "r") as f:
+            config = json.load(f)
+        
+        if config["ip"] != "":
+            return config["ip"]
+        else:
+            print("Error in " + CFG_FILENAME + ". No ip address found")
+    else:
+        print(CFG_FILENAME + " not found. Please start the setup process")
+
+
+
+def get_info(ip):
+
+    def load_info():
+        #Load entity id and name from config json file
+        with open(CFG_FILENAME, "r") as f:
+            config = json.load(f)
+        
+        try:
+            if config["id"] != "" and config["name"] != "" :
+                info = [config["id"], config["name"]]
+                return print(info)
+            else:
+                print("Error in " + CFG_FILENAME + ". No entity id or name found")
+                return False
+        except KeyError:
+            print("No id or name fields found")
+            return False
+
+    #Check if config files exists and load id and name as query takes too much time
+    if os.path.isfile(CFG_FILENAME):
+        if load_info():
+            return print(load_info())
+        else:
+            projector = pysdcp.Projector(ip)
+            print("Query serial number and model name from projector via SDAP advertisement service. This may take up to 30 seconds")
+
+            if projector.get_serial():
+                serial = print(projector.get_serial())
+                model = print(projector.get_model())
+
+                print("Store serial number and model name as id and name into " + CFG_FILENAME)
+                id_json={"id": serial}
+                name_json={"name": model}
+                with open(CFG_FILENAME, "w") as f:
+                    json.dump(id_json, f)
+                    json.dump(name_json, f)
+
+                return print(load_info())
+
+            else:
+                print("Could not query serial number from projector. Check if SDAP advertisement service is turned on")
+                print("Store default values")
+                id_json={"id": ID_DEFAULT}
+                name_json={"name": NAME_DEFAULT}
+                with open(CFG_FILENAME, "w") as f:
+                    json.dump(id_json, f)
+                    json.dump(name_json, f)
+
+                return print(load_info())
+    else:
+        print(CFG_FILENAME + " not found. Please start the setup process")
+        return False
+
+
 
 async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
     """
@@ -79,8 +152,8 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             #Add entities with their corresponding command handler
             #TODO Generate entity id from MAC address
             #TODO Generate entity name from model name via pySDCP
-            print(f"Add entities")
-            add_media_player(ID, NAME)
+            print("Add media player entity from ip " + ip)
+            add_media_player(ip)
 
             print(f"Setup complete")
             return ucapi.SetupComplete()
@@ -91,23 +164,6 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
     print("No or no valid IP address has been entered")
     return ucapi.SetupError()
-
-
-
-def get_ip():
-    #Check if confg json file exists
-    if os.path.isfile(CFG_FILENAME):
-
-        #Load ip address from config json file
-        with open(CFG_FILENAME, "r") as f:
-            config = json.load(f)
-        
-        if config["ip"] != "":
-            return config["ip"]
-        else:
-            print("Error in " + CFG_FILENAME + ". No ip address found")
-    else:
-        print("No configuration json file found. Please restart the setup process")
 
 
 
@@ -135,8 +191,12 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
 
 
 
-def add_media_player(id, name):
-    
+def add_media_player(ip):
+        
+    info = get_info(ip)
+    id = info[1]
+    name = info[2]
+
     features = [
         ucapi.media_player.Features.ON_OFF, 
         ucapi.media_player.Features.TOGGLE, 
@@ -449,20 +509,28 @@ if __name__ == "__main__":
     logging.basicConfig()
 
     #TODO Use logging function instead of print()
+    #FIXME WS connection closed and not reestablish after remote reboot due to a system freeze. Can not be reproduced with a manual reboot
+    #FIXME .local domainname changed after system freeze and the remote could not reconnect to the driver. Had to manually change the driver url to the new url. The domain didn't changed after a manual container restart. Why? Docker problem?
+
+    print("Starting driver")
 
     #Check if configuration file has already been created and add all entities
     if os.path.isfile(CFG_FILENAME):
 
         print(f"Configuration json file found.")
 
-        if api.available_entities.contains(ID):
-            print(ID + " already in storage")
+        info = get_info(get_ip())
+        id = info[1]
+        name = info[2]
+
+        if api.available_entities.contains(id):
+            print("Entity with id " + id + " is already in storage")
         else:
-            print("Add " + ID + " entity")
-            add_media_player(ID, NAME)
+            print("Add entity with id " + id)
+            add_media_player(get_ip())
 
     else:
-        print("No configuration json file found. Please start the setup process")
+        print(CFG_FILENAME + " not found. Please start the setup process")
 
 
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))

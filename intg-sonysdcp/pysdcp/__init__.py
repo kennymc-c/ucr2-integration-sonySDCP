@@ -194,6 +194,46 @@ class Projector:
         self.ip = addr[0]
         self.is_init = True
 
+    def get_serial(self, udp_ip: str = None, udp_port: int = None, timeout=None):
+
+        self.UDP_PORT = udp_port if udp_port is not None else self.UDP_PORT
+        self.UDP_IP = udp_ip if udp_ip is not None else self.UDP_IP
+        timeout = timeout if timeout is not None else self.UDP_TIMEOUT
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        sock.bind((self.UDP_IP, self.UDP_PORT))
+
+        sock.settimeout(timeout)
+        try:
+            SDAP_buffer, addr = sock.recvfrom(1028)
+        except socket.timeout as e:
+            return False
+        
+        serial = unpack('>I', SDAP_buffer[20:24])[0]
+
+        return serial
+    
+    def get_model(self, udp_ip: str = None, udp_port: int = None, timeout=None):
+
+        self.UDP_PORT = udp_port if udp_port is not None else self.UDP_PORT
+        self.UDP_IP = udp_ip if udp_ip is not None else self.UDP_IP
+        timeout = timeout if timeout is not None else self.UDP_TIMEOUT
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        sock.bind((self.UDP_IP, self.UDP_PORT))
+
+        sock.settimeout(timeout)
+        try:
+            SDAP_buffer, addr = sock.recvfrom(1028)
+        except socket.timeout as e:
+            return False
+        
+        model = decode_text_field(SDAP_buffer[8:20])
+
+        return model
+
     def set_power(self, on=True):
         self._send_command(action=ACTIONS["SET"], command=COMMANDS["SET_POWER"],
                            data=POWER_STATUS["START_UP"] if on else POWER_STATUS["STANDBY"])
