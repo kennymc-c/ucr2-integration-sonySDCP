@@ -84,7 +84,7 @@ Open the projectors web interface and go to *Setup/Advanced Menu (left menu)/PJT
 
 #### Requirements
 
-- At least firmware 1.7.4 to support simple commands
+- UCR2 firmware 1.7.4 or newer to support simple commands
 - Python 3.11
 - Install Libraries:  
   (using a [virtual environment](https://docs.python.org/3/library/venv.html) is highly recommended)
