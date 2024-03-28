@@ -217,9 +217,6 @@ class Projector:
         ip = addr[0]
 
         result = {"model":model, "serial":serial, "ip":ip}
-        # result.update({"serial":serial})
-        # result.update({"model":model})
-        # result.update({"ip":ip})
 
         return result
 
