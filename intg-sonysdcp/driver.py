@@ -12,10 +12,10 @@ import ipaddress
 import pysdcp
 from pysdcp.protocol import *
 
-# os.environ["UC_INTEGRATION_INTERFACE"] = ""
+os.environ["UC_INTEGRATION_INTERFACE"] = "192.168.1.101"
 CFG_FILENAME = "config-test.json"
 ID_DEFAULT = "sony-projector"
-NAME_DEFAULT = '{"en": "Sony Projector", "de": "Sony Projektor"}'
+NAME_DEFAULT = {"en": "Sony Projector", "de": "Sony Projektor"}
 
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
@@ -41,62 +41,66 @@ def get_ip():
 
 
 
-def get_info(ip):
+def get_pjinfo(ip):
 
-    def load_info():
+    def load_pjinfo():
         #Load entity id and name from config json file
         with open(CFG_FILENAME, "r") as f:
             config = json.load(f)
         
         try:
             if config["id"] != "" and config["name"] != "" :
-                id = config["id"]
-                name = config["name"]
-                info = [id, name]
-                return info
+                return config
             else:
                 print("Error in " + CFG_FILENAME + ". No entity id or name found")
                 return False
         except KeyError:
             print("No id or name fields found")
             return False
-
+        
+    def storedata(id, name):
+        print("Store serial number and model name as id and name into " + CFG_FILENAME)
+        with open(CFG_FILENAME, "a") as f:
+            json.dump(id, f)
+            json.dump(name, f)
+    
     #Check if config files exists and load id and name as query takes too much time
     if os.path.isfile(CFG_FILENAME):
-        if load_info():
-            return print(load_info())
+        if load_pjinfo():
+            return print(load_pjinfo())
         else:
             projector = pysdcp.Projector(ip)
-            print("Query serial number and model name from projector via SDAP advertisement service. This may take up to 30 seconds")
-            #TODO Also mention this in the setup dialog when entering the ip
 
-            if projector.get_serial():
-                #TODO Get serial and name from a single function that returns a list. Otherwise there will be a setup timeout from the remote side
-                serial = projector.get_serial()
-                model = projector.get_model()
-
-                print("Store serial number and model name as id and name into " + CFG_FILENAME)
-                id_json={"id": serial}
-                name_json={"name": model}
-                try:
-                    with open(CFG_FILENAME, "a") as f:
-                        json.dump(id_json, f)
-                        json.dump(name_json, f)
-                    return print(load_info())
-                except:
-                    print("Error storing id and name into " + CFG_FILENAME)
-                    return False
-
-            else:
+            try:
+                print("Query serial number and model name from projector via SDAP advertisement service. This may take up to 30 seconds")
+                #TODO Also mention this in the setup dialog when entering the ip
+                pjinfo = projector.get_pjinfo()
+            except:
                 print("Could not query serial number from projector. Check if SDAP advertisement service is turned on")
                 print("Store default values")
-                id_json='"id": ID_DEFAULT'
-                name_json='"name": NAME_DEFAULT'
-                with open(CFG_FILENAME, "a") as f:
-                    json.dump(id_json, f)
-                    json.dump(name_json, f)
+                id_json={"id": ID_DEFAULT}
+                name_json={"name": NAME_DEFAULT}
 
-                return print(load_info())
+                storedata(id_json, name_json)
+
+                try:
+                    info = print(load_pjinfo())
+                except:
+                    return False
+            
+                return info
+            
+            serial = pjinfo["serial"]
+            model = pjinfo["model"]
+
+            id_json={"id": serial}
+            name_json={"name": model}
+
+            storedata(id_json, name_json)
+
+            info = print(load_pjinfo())
+        
+            return info
     else:
         print(CFG_FILENAME + " not found. Please start the setup process")
         return False
@@ -179,9 +183,9 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 def add_media_player(ip):
     
     try:
-        info = get_info(ip)
-        id = info[1]
-        name = info[2]
+        info = get_pjinfo(ip)
+        id = info["id"]
+        name = info["name"]
 
         features = [
             ucapi.media_player.Features.ON_OFF, 
@@ -529,14 +533,15 @@ if __name__ == "__main__":
 
     print("Starting driver")
 
+    #TODO First check if there are any configured entities on the remote and then check if config file exists
+
     #Check if configuration file has already been created and add all entities
     if os.path.isfile(CFG_FILENAME):
 
         print(f"Configuration json file found.")
 
-        info = get_info(get_ip())
-        id = info[1]
-        name = info[2]
+        info = get_pjinfo(get_ip())
+        id = info["id"]
 
         if api.available_entities.contains(id):
             print("Entity with id " + id + " is already in storage")
