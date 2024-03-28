@@ -450,6 +450,10 @@ if __name__ == "__main__":
     logging.basicConfig()
 
     #TODO Use logging function instead of print()
+    
+    print("Starting driver")
+
+    #TODO First check if there are any configured entities on the remote and then check if config file exists
 
     #Check if configuration file has already been created and add all entities
     if os.path.isfile(CFG_FILENAME):
