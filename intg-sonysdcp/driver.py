@@ -450,6 +450,8 @@ if __name__ == "__main__":
     logging.basicConfig()
 
     #TODO Use logging function instead of print()
+    #FIXME WS connection closed and not reestablish after remote reboot due to a system freeze. Can not be reproduced with a manual reboot
+    #FIXME .local domainname changed after system freeze and the remote could not reconnect to the driver. Had to manually change the driver url to the new url. The domain didn't changed after a manual container restart. Why? Docker problem?
     
     print("Starting driver")
 
