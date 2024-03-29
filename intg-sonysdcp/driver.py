@@ -12,7 +12,7 @@ import ipaddress
 import pysdcp
 from pysdcp.protocol import *
 
-os.environ["UC_INTEGRATION_INTERFACE"] = "192.168.1.101"
+# os.environ["UC_INTEGRATION_INTERFACE"] = ""
 CFG_FILENAME = "config-test.json"
 ID_DEFAULT = "sony-projector"
 NAME_DEFAULT = {"en": "Sony Projector", "de": "Sony Projektor"}
@@ -40,67 +40,99 @@ def get_ip():
         print(CFG_FILENAME + " not found. Please start the setup process")
 
 
+def setup_complete(bool):
+    if bool == True:
+        flag = {"setup_complete": True}
+    else:
+        flag = {"setup_complete": False}
+    try:
+        with open(CFG_FILENAME, "r+") as f:
+            l = json.load(f)
+            l.update(flag)
+            f.seek(0)
+            json.dump(l, f)
+    except:
+        raise Exception("Error while storing setup_complete flag")
+
+
+
+def get_setup_complete():
+    try:
+        with open(CFG_FILENAME, "r") as f:
+            l = json.load(f)
+            flag = l["setup_complete"]
+            if flag == True:
+                return True
+            elif flag == False:
+                return False
+    except KeyError:
+        print("No setup_complete flag set yet")
+        return False
+    except:
+        raise Exception("Error while reading setup_complete flag")
+        
+
+
 
 def get_pjinfo(ip):
 
     def load_pjinfo():
         #Load entity id and name from config json file
         with open(CFG_FILENAME, "r") as f:
-            config = json.load(f)
-        
-        try:
-            if config["id"] != "" and config["name"] != "" :
-                return config
-            else:
-                print("Error in " + CFG_FILENAME + ". No entity id or name found")
-                return False
-        except KeyError:
-            print("No id or name fields found")
+            config = json.load(f)  
+
+        if "id" and "name" in config:
+            return config
+        else:
             return False
         
-    def storedata(id, name):
-        print("Store serial number and model name as id and name into " + CFG_FILENAME)
-        with open(CFG_FILENAME, "a") as f:
-            json.dump(id, f)
-            json.dump(name, f)
+    def store_pjinfo(data):
+        print("Append serial number as id and model as name into " + CFG_FILENAME)
+        try:
+            with open(CFG_FILENAME, "r+") as f:
+                l = json.load(f)
+                l.update(data)
+                f.seek(0)
+                json.dump(l, f)
+        except:
+            raise Exception("Error while storing the data")
     
     #Check if config files exists and load id and name as query takes too much time
     if os.path.isfile(CFG_FILENAME):
-        if load_pjinfo():
-            return print(load_pjinfo())
+        config = load_pjinfo()
+
+        if config != False:
+            return config
         else:
             projector = pysdcp.Projector(ip)
+            
+            print("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service. This may take up to 30 seconds")
+            #TODO Also mention this in the setup dialog when entering the ip
+            pjinfo = projector.get_pjinfo()
 
-            try:
-                print("Query serial number and model name from projector via SDAP advertisement service. This may take up to 30 seconds")
-                #TODO Also mention this in the setup dialog when entering the ip
-                pjinfo = projector.get_pjinfo()
-            except:
-                print("Could not query serial number from projector. Check if SDAP advertisement service is turned on")
-                print("Store default values")
-                id_json={"id": ID_DEFAULT}
-                name_json={"name": NAME_DEFAULT}
+            if pjinfo != False:
 
-                storedata(id_json, name_json)
+                serial = str(pjinfo["serial"])
+                model = "Sony " + pjinfo["model"]
 
-                try:
-                    info = print(load_pjinfo())
-                except:
-                    return False
+                jsondata={"id": serial, "name": model}
+
+                store_pjinfo(jsondata)
+
+                info = load_pjinfo()
+            
+                return info
+            else:
+                print("Query failed. Please check if the projector is on the same network as the integration and SDAP advertisement service is turned on")
+                print("Using default values instead: ID: " + ID_DEFAULT + ", Name: " + str(NAME_DEFAULT))
+                jsondata={"id": ID_DEFAULT, "name": NAME_DEFAULT}
+
+                store_pjinfo(jsondata)
+
+                info = load_pjinfo()
             
                 return info
             
-            serial = pjinfo["serial"]
-            model = pjinfo["model"]
-
-            id_json={"id": serial}
-            name_json={"name": model}
-
-            storedata(id_json, name_json)
-
-            info = print(load_pjinfo())
-        
-            return info
     else:
         print(CFG_FILENAME + " not found. Please start the setup process")
         return False
@@ -169,11 +201,17 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         #TODO Generate entity name from model name via pySDCP
         print("Add media player entity from ip " + ip)
         mp_add = add_media_player(ip)
-        if mp_add == False:
+        if mp_add == True:
+            print(f"Setup complete")
+            setup_complete(True)
+            return ucapi.SetupComplete()
+        elif mp_add == False:
+            setup_complete(False)
             return ucapi.SetupError()
         else:
-            print(f"Setup complete")
-            return ucapi.SetupComplete()
+            print("Unknown response from add_media_player: " + str(mp_add))
+            setup_complete(False)
+            return ucapi.SetupError()
 
     print("No or no valid IP address has been entered")
     return ucapi.SetupError()
@@ -182,65 +220,67 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
 def add_media_player(ip):
     
-    try:
-        info = get_pjinfo(ip)
-        id = info["id"]
-        name = info["name"]
+    info = get_pjinfo(ip)
+    id = info["id"]
+    name = info["name"]
 
-        features = [
-            ucapi.media_player.Features.ON_OFF, 
-            ucapi.media_player.Features.TOGGLE, 
-            ucapi.media_player.Features.MUTE,
-            ucapi.media_player.Features.UNMUTE,
-            ucapi.media_player.Features.MUTE_TOGGLE,
-            ucapi.media_player.Features.DPAD, 
-            ucapi.media_player.Features.HOME, 
-            ucapi.media_player.Features.SELECT_SOURCE
+    print(id + str(name))
+
+    features = [
+        ucapi.media_player.Features.ON_OFF, 
+        ucapi.media_player.Features.TOGGLE, 
+        ucapi.media_player.Features.MUTE,
+        ucapi.media_player.Features.UNMUTE,
+        ucapi.media_player.Features.MUTE_TOGGLE,
+        ucapi.media_player.Features.DPAD, 
+        ucapi.media_player.Features.HOME, 
+        ucapi.media_player.Features.SELECT_SOURCE
+        ]
+
+    media_player = ucapi.MediaPlayer(
+        id, 
+        name, 
+        features, 
+        attributes={
+            ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN, 
+            ucapi.media_player.Attributes.MUTED: False,
+            ucapi.media_player.Attributes.SOURCE: "", 
+            ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
+        },
+        device_class=ucapi.media_player.DeviceClasses.TV, 
+        options={
+            ucapi.media_player.Options.SIMPLE_COMMANDS: [
+                "MODE_PRESET_REF",
+                "MODE_PRESET_TV",
+                "MODE_PRESET_PHOTO",
+                "MODE_PRESET_GAME",
+                "MODE_PRESET_BRIGHT_CINEMA",
+                "MODE_PRESET_BRIGHT_TV",
+                "MODE_PRESET_USER",
+                "MODE_ASPECT_RATIO_NORMAL",
+                "MODE_ASPECT_RATIO_V_STRETCH",
+                "MODE_ASPECT_RATIO_ZOOM_1_85",
+                "MODE_ASPECT_RATIO_ZOOM_2_35",
+                "MODE_ASPECT_RATIO_STRETCH",
+                "MODE_ASPECT_RATIO_SQUEEZE",
+                "MODE_PRESET_CINEMA_FILM_1",
+                "MODE_PRESET_CINEMA_FILM_2",
+                "LENS_SHIFT_UP",
+                "LENS_SHIFT_DOWN",
+                "LENS_SHIFT_LEFT",
+                "LENS_SHIFT_RIGHT",
+                "LENS_FOCUS_FAR",
+                "LENS_FOCUS_NEAR",
+                "LENS_ZOOM_LARGE",
+                "LENS_ZOOM_SMALL",
             ]
+        },
+        cmd_handler=mp_cmd_handler
+    )
 
-        media_player = ucapi.MediaPlayer(
-            id, 
-            name, 
-            features, 
-            attributes={
-                ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN, 
-                ucapi.media_player.Attributes.MUTED: False,
-                ucapi.media_player.Attributes.SOURCE: "", 
-                ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
-            },
-            device_class=ucapi.media_player.DeviceClasses.TV, 
-            options={
-                ucapi.media_player.Options.SIMPLE_COMMANDS: [
-                    "MODE_PRESET_REF",
-                    "MODE_PRESET_TV",
-                    "MODE_PRESET_PHOTO",
-                    "MODE_PRESET_GAME",
-                    "MODE_PRESET_BRIGHT_CINEMA",
-                    "MODE_PRESET_BRIGHT_TV",
-                    "MODE_PRESET_USER",
-                    "MODE_ASPECT_RATIO_NORMAL",
-                    "MODE_ASPECT_RATIO_V_STRETCH",
-                    "MODE_ASPECT_RATIO_ZOOM_1_85",
-                    "MODE_ASPECT_RATIO_ZOOM_2_35",
-                    "MODE_ASPECT_RATIO_STRETCH",
-                    "MODE_ASPECT_RATIO_SQUEEZE",
-                    "MODE_PRESET_CINEMA_FILM_1",
-                    "MODE_PRESET_CINEMA_FILM_2",
-                    "LENS_SHIFT_UP",
-                    "LENS_SHIFT_DOWN",
-                    "LENS_SHIFT_LEFT",
-                    "LENS_SHIFT_RIGHT",
-                    "LENS_FOCUS_FAR",
-                    "LENS_FOCUS_NEAR",
-                    "LENS_ZOOM_LARGE",
-                    "LENS_ZOOM_SMALL",
-                ]
-            },
-            cmd_handler=mp_cmd_handler
-        )
-        
+    try:
         api.available_entities.add(media_player)
-
+        return True
     except:
         print("Error during creation of media player entity")
         return False
@@ -535,22 +575,26 @@ if __name__ == "__main__":
 
     #TODO First check if there are any configured entities on the remote and then check if config file exists
 
-    #Check if configuration file has already been created and add all entities
-    if os.path.isfile(CFG_FILENAME):
+    if get_setup_complete():
 
-        print(f"Configuration json file found.")
+        #Check if configuration file has already been created and add all entities
+        if os.path.isfile(CFG_FILENAME):
 
-        info = get_pjinfo(get_ip())
-        id = info["id"]
+            print(CFG_FILENAME + " found")
 
-        if api.available_entities.contains(id):
-            print("Entity with id " + id + " is already in storage")
+            info = get_pjinfo(get_ip())
+            id = info["id"]
+
+            if api.available_entities.contains(id):
+                print("Entity with id " + id + " is already in storage")
+            else:
+                print("Add entity with id " + id)
+                add_media_player(get_ip())
+
         else:
-            print("Add entity with id " + id)
-            add_media_player(get_ip())
-
+            print(CFG_FILENAME + " not found. Please restart the setup process")
     else:
-        print(CFG_FILENAME + " not found. Please start the setup process")
+        print("Driver setup not complete. Please start the setup process")
 
 
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))

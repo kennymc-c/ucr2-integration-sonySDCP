@@ -212,7 +212,7 @@ class Projector:
         except socket.timeout as e:
             return False
         
-        serial = str(unpack('>I', SDAP_buffer[20:24])[0])
+        serial = unpack('>I', SDAP_buffer[20:24])[0]
         model = decode_text_field(SDAP_buffer[8:20])
         ip = addr[0]
 
