@@ -25,7 +25,7 @@ api = ucapi.IntegrationAPI(loop)
 
 
 def get_ip():
-    #Check if confg json file exists
+    #Check if config json file exists
     if os.path.isfile(CFG_FILENAME):
 
         #Load ip address from config json file
@@ -40,7 +40,7 @@ def get_ip():
         print(CFG_FILENAME + " not found. Please start the setup process")
 
 
-def setup_complete(value):
+def setup_complete(value: bool):
     if value == True:
         flag = {"setup_complete": True}
     else:
@@ -67,10 +67,10 @@ def get_setup_complete():
                 elif flag == False:
                     return False
         except KeyError:
-            print("No setup_complete flag set yet")
+            print("Setup has not been completed yet")
             return False
         except:
-            raise Exception("Error while reading setup_complete flag")
+            raise Exception("Error while reading setup_complete flag from " + CFG_FILENAME)
     else:
         print(CFG_FILENAME + " does not exist (yet)")
         return False
@@ -78,7 +78,7 @@ def get_setup_complete():
 
 
 
-def get_pjinfo(ip):
+def get_pjinfo(ip: str):
 
     def load_pjinfo():
         #Load entity id and name from config json file
@@ -86,6 +86,7 @@ def get_pjinfo(ip):
             config = json.load(f)  
 
         if "id" and "name" in config:
+            print("Loaded id and name from " + CFG_FILENAME)
             return config
         else:
             return False
@@ -99,15 +100,15 @@ def get_pjinfo(ip):
                 f.seek(0)
                 json.dump(l, f)
         except:
-            raise Exception("Error while storing the data")
+            print("Error while storing projector data")
+            return False
+            
     
-    #Check if config files exists and load id and name as query takes too much time
+    #Check if config files exists and load id and name instead of query them every time
     if os.path.isfile(CFG_FILENAME):
         config = load_pjinfo()
 
-        if config != False:
-            return config
-        else:
+        if config == False:
             projector = pysdcp.Projector(ip)
             
             print("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service. This may take up to 30 seconds")
@@ -123,19 +124,22 @@ def get_pjinfo(ip):
 
                 store_pjinfo(jsondata)
 
-                info = load_pjinfo()
+                config = load_pjinfo()
             
-                return info
+                return config
             else:
-                print("Query failed. Please check if the projector is on the same network as the integration and SDAP advertisement service is turned on")
+                print("Query failed. Please check if the projector is connected to the same network as the integration and the SDAP advertisement service is turned on")
                 print("Using default values instead: ID: " + ID_DEFAULT + ", Name: " + str(NAME_DEFAULT))
                 jsondata={"id": ID_DEFAULT, "name": NAME_DEFAULT}
 
                 store_pjinfo(jsondata)
 
-                info = load_pjinfo()
+                config = load_pjinfo()
             
-                return info
+                return config
+                
+        else:
+            return config
             
     else:
         print(CFG_FILENAME + " not found. Please start the setup process")
@@ -143,11 +147,14 @@ def get_pjinfo(ip):
 
 
 
-def add_media_player(ip):
+def add_media_player(ip: str):
     
     info = get_pjinfo(ip)
-    id = info["id"]
-    name = info["name"]
+    if info == False:
+        return False
+    else:
+        id = info["id"]
+        name = info["name"]
 
     features = [
         ucapi.media_player.Features.ON_OFF, 
@@ -201,13 +208,79 @@ def add_media_player(ip):
         cmd_handler=mp_cmd_handler
     )
 
-    if api.available_entities.add(media_player):
-        print("Added media player entity")
-        return True
-    else:
-        print("Error during creation of media player entity")
-        return False
+    api.available_entities.add(media_player)
+    print("Added media player entity")
 
+
+
+async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
+    """
+    Dispatch driver setup requests to corresponding handlers.
+
+    Either start the setup process or handle the provided user input data.
+
+    :param msg: the setup driver request object, either DriverSetupRequest,
+                UserDataResponse or UserConfirmationResponse
+    :return: the setup action on how to continue
+    """
+    if isinstance(msg, ucapi.DriverSetupRequest):
+        return await handle_driver_setup(msg)
+
+    print("Error during setup")
+    return ucapi.SetupError()
+
+
+
+async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupAction:
+    """
+    Start driver setup.
+
+    Initiated by Remote Two to set up the driver.
+
+    :param msg: value(s) of input fields in the first setup screen.
+    :return: the setup action on how to continue
+    """
+
+    # if msg.reconfigure:
+    #     print("Ignoring driver reconfiguration request")
+
+    # print("Clear all available and configured entities")
+    # api.available_entities.clear()
+    # api.configured_entities.clear()
+
+    #Check if ip address has been entered
+    if msg.setup_data["ip"] != "":
+
+        #Check if input is a valid ipv4 or ipv6 address
+        try:
+            ip_object = ipaddress.ip_address(msg.setup_data["ip"])
+        except ValueError:
+            print("The entered ip address \"" + msg.setup_data["ip"] + "\" is not valid")
+            return ucapi.SetupError()
+
+        print(f"Chosen ip address: " + msg.setup_data["ip"])
+
+        #Create Python dictionary for ip address
+        ip = msg.setup_data["ip"]
+        ip_json = {"ip": msg.setup_data["ip"]}
+
+        #Convert and store ip address into Json config file
+        with open(CFG_FILENAME, "w") as f:
+            json.dump(ip_json, f)
+
+        print("IP address stored in " + CFG_FILENAME)
+
+        #Add entities with their corresponding command handler
+        print("Add media player entity from ip " + ip)
+
+        add_media_player(ip)
+        print("Setup complete")
+        setup_complete(True)
+        return ucapi.SetupComplete()
+    
+    else:
+        print("No IP address has been entered")
+        return ucapi.SetupError()
 
 
 
@@ -393,85 +466,6 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
             print("Command not implemented: " + cmd_name)
             return ucapi.StatusCodes.NOT_IMPLEMENTED
 
-
-
-async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
-    """
-    Dispatch driver setup requests to corresponding handlers.
-
-    Either start the setup process or handle the provided user input data.
-
-    :param msg: the setup driver request object, either DriverSetupRequest,
-                UserDataResponse or UserConfirmationResponse
-    :return: the setup action on how to continue
-    """
-    if isinstance(msg, ucapi.DriverSetupRequest):
-        return await handle_driver_setup(msg)
-
-    print("Error during setup")
-    return ucapi.SetupError()
-
-
-
-async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupAction:
-    """
-    Start driver setup.
-
-    Initiated by Remote Two to set up the driver.
-
-    :param msg: value(s) of input fields in the first setup screen.
-    :return: the setup action on how to continue
-    """
-
-    # if msg.reconfigure:
-    #     print("Ignoring driver reconfiguration request")
-
-    # print("Clear all available and configured entities")
-    # api.available_entities.clear()
-    # api.configured_entities.clear()
-
-    #Check if ip address has been entered
-    if msg.setup_data["ip"] != "":
-
-        #Check if input is a valid ipv4 or ipv6 address
-        try:
-            ip_object = ipaddress.ip_address(msg.setup_data["ip"])
-        except ValueError:
-            print("The entered ip address \"" + msg.setup_data["ip"] + "\" is not valid")
-            return ucapi.SetupError()
-
-        print(f"Chosen ip address: " + msg.setup_data["ip"])
-
-        #Create Python dictionary for ip address
-        ip = msg.setup_data["ip"]
-        ip_json = {"ip": msg.setup_data["ip"]}
-
-        #Convert and store ip address into Json config file
-        with open(CFG_FILENAME, "w") as f:
-            json.dump(ip_json, f)
-
-        print("IP address stored in " + CFG_FILENAME)
-
-        #Add entities with their corresponding command handler
-        print("Add media player entity from ip " + ip)
-
-        await add_media_player(ip)
-        print(f"Setup complete")
-        setup_complete(True)
-        return ucapi.SetupComplete()
-    
-        # if add_media_player(ip):
-        #   print(f"Setup complete")
-        #   setup_complete(True)
-        #   return ucapi.SetupComplete()
-        # else:
-        #     print(f"Setup failed")
-        #     setup_complete(False)
-        #     return ucapi.SetupError()
-    
-    else:
-        print("No IP address has been entered")
-        return ucapi.SetupError()
 
 
 
