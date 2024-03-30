@@ -166,7 +166,7 @@ and under the GitHub [releases](/releases).
 
 ## Contributions
 
-Contributions to add new feature, implement #TODOs from the code or improve the code quality and stability are welcome! Please fork this repository first and then create a pull request to merge your commits and explain what you want to change or add.
+Contributions to add new feature, implement #TODOs from the code or improve the code quality and stability are welcome! First check whether there are other branches in this repository that maybe already include your feature. If not, please fork this repository first and then create a pull request to merge your commits and explain what you want to change or add.
 
 ## License
 
