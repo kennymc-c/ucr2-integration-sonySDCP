@@ -9,13 +9,18 @@ import json
 import os
 import ipaddress
 
+#import nest_asyncio
+
 import pysdcp
 from pysdcp.protocol import *
 
+_LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
+
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
 CFG_FILENAME = "config-test.json"
-ID_DEFAULT = "sony-projector"
-NAME_DEFAULT = {"en": "Sony Projector", "de": "Sony Projektor"}
+projector_data = {}
+id = ""
+name = ""
 
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
@@ -35,9 +40,9 @@ def get_ip():
         if config["ip"] != "":
             return config["ip"]
         else:
-            print("Error in " + CFG_FILENAME + ". No ip address found")
+            _LOG.error("Error in " + CFG_FILENAME + ". No ip address found")
     else:
-        print(CFG_FILENAME + " not found. Please start the setup process")
+        _LOG.info(CFG_FILENAME + " not found. Please start the setup process")
 
 
 def setup_complete(value: bool):
@@ -67,18 +72,20 @@ def get_setup_complete():
                 elif flag == False:
                     return False
         except KeyError:
-            print("Setup has not been completed yet")
+            _LOG.info("Setup has not been completed yet")
             return False
         except:
             raise Exception("Error while reading setup_complete flag from " + CFG_FILENAME)
     else:
-        print(CFG_FILENAME + " does not exist (yet)")
+        _LOG.info(CFG_FILENAME + " does not exist (yet)")
         return False
         
 
 
 
-def get_pjinfo(ip: str):
+async def get_pjinfo(ip: str):
+    global id
+    global name
 
     def load_pjinfo():
         #Load entity id and name from config json file
@@ -86,13 +93,14 @@ def get_pjinfo(ip: str):
             config = json.load(f)  
 
         if "id" and "name" in config:
-            print("Loaded id and name from " + CFG_FILENAME)
-            return config
+            _LOG.debug("Loaded id and name from " + CFG_FILENAME)
+            id = config["id"]
+            name = config["name"]
         else:
             return False
         
     def store_pjinfo(data):
-        print("Append serial number as id and model as name into " + CFG_FILENAME)
+        _LOG.debug("Append serial number as id and model as name into " + CFG_FILENAME)
         try:
             with open(CFG_FILENAME, "r+") as f:
                 l = json.load(f)
@@ -100,7 +108,7 @@ def get_pjinfo(ip: str):
                 f.seek(0)
                 json.dump(l, f)
         except:
-            print("Error while storing projector data")
+            _LOG.error("Error while storing projector data")
             return False
             
     
@@ -111,50 +119,39 @@ def get_pjinfo(ip: str):
         if config == False:
             projector = pysdcp.Projector(ip)
             
-            print("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service. This may take up to 30 seconds")
+            _LOG.info("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service. This may take up to 30 seconds")
             #TODO Also mention this in the setup dialog when entering the ip
+
             pjinfo = projector.get_pjinfo()
+            if pjinfo:
+                _LOG.debug("Got data from projector")
+                if "serial" and "model" in pjinfo:
+                    id = pjinfo["model"] + "-" + str(pjinfo["serial"])
+                    name = "Sony " + pjinfo["model"]
 
-            if pjinfo != False:
+                    jsondata={"id": id, "name": name}
 
-                serial = str(pjinfo["serial"])
-                model = "Sony " + pjinfo["model"]
-
-                jsondata={"id": serial, "name": model}
-
-                store_pjinfo(jsondata)
-
-                config = load_pjinfo()
-            
-                return config
+                    store_pjinfo(jsondata)
+                    return True
+                else:
+                    _LOG.error("Unknown values: " + pjinfo)
+                    return False
             else:
-                print("Query failed. Please check if the projector is connected to the same network as the integration and the SDAP advertisement service is turned on")
-                print("Using default values instead: ID: " + ID_DEFAULT + ", Name: " + str(NAME_DEFAULT))
-                jsondata={"id": ID_DEFAULT, "name": NAME_DEFAULT}
-
-                store_pjinfo(jsondata)
-
-                config = load_pjinfo()
-            
-                return config
+                _LOG.error("Query failed. Please check if the projector is connected to the same network as the integration and the SDAP advertisement service is turned on")
+                return False    
                 
         else:
-            return config
+            id = config["id"]
+            name = config["name"]
+            return True
             
     else:
-        print(CFG_FILENAME + " not found. Please start the setup process")
+        _LOG.warn(CFG_FILENAME + " not found. Please start the setup process")
         return False
 
 
 
-def add_media_player(ip: str):
-    
-    info = get_pjinfo(ip)
-    if info == False:
-        return False
-    else:
-        id = info["id"]
-        name = info["name"]
+def add_media_player(ip: str, id: str, name: str):
 
     features = [
         ucapi.media_player.Features.ON_OFF, 
@@ -226,8 +223,15 @@ async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
     if isinstance(msg, ucapi.DriverSetupRequest):
         return await handle_driver_setup(msg)
 
-    print("Error during setup")
+    _LOG.error("Error during setup")
     return ucapi.SetupError()
+
+
+
+async def request_projector_info(ip: str):
+    global projector_data
+    projector_data = get_pjinfo(ip)
+    await projector_data
 
 
 
@@ -255,10 +259,10 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         try:
             ip_object = ipaddress.ip_address(msg.setup_data["ip"])
         except ValueError:
-            print("The entered ip address \"" + msg.setup_data["ip"] + "\" is not valid")
+            _LOG.error("The entered ip address \"" + msg.setup_data["ip"] + "\" is not valid")
             return ucapi.SetupError()
 
-        print(f"Chosen ip address: " + msg.setup_data["ip"])
+        _LOG.info(f"Chosen ip address: " + msg.setup_data["ip"])
 
         #Create Python dictionary for ip address
         ip = msg.setup_data["ip"]
@@ -268,15 +272,36 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         with open(CFG_FILENAME, "w") as f:
             json.dump(ip_json, f)
 
-        print("IP address stored in " + CFG_FILENAME)
+        _LOG.debug("IP address stored in " + CFG_FILENAME)
 
-        #Add entities with their corresponding command handler
-        print("Add media player entity from ip " + ip)
+        #Get id and name from projector
+        
+        #Preferred solution: Via a coroutine running in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval
+        #TODO Doesn't work in this form. Help appreciated
+        # global projector_data
+        # #asyncio.get_running_loop()
+        # nest_asyncio.apply()
+        # loop.run_until_complete(request_projector_info(ip))
 
-        add_media_player(ip)
-        print("Setup complete")
-        setup_complete(True)
-        return ucapi.SetupComplete()
+        #Backup solution without a coroutine.
+        #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection otherwise
+        await get_pjinfo(ip)
+
+        global id
+        global name
+        if id and name == "":
+            _LOG.error("Setup failed because of a timeout to the projector")
+            setup_complete(False)
+            return ucapi.SetupError()
+        if id and name != "":
+            #Add entities with their corresponding command handler
+            _LOG.info("Add media player entity from ip " + ip + "id " + id + " and " + name)
+
+            add_media_player(ip, id, name)
+
+            _LOG.info("Setup complete")
+            setup_complete(True)
+            return ucapi.SetupComplete()
     
     else:
         print("No IP address has been entered")
@@ -296,12 +321,12 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     :return: status of the command
     """
 
-    print(f"Received {cmd_id} command for {entity.id}. Optional parameter: {_params}")
+    _LOG.info(f"Received {cmd_id} command for {entity.id}. Optional parameter: {_params}")
     
     try:
         ip = get_ip()
     except:
-        print("Could not load ip address from config json file")
+        _LOG.error("Could not load ip address from config json file")
         return ucapi.StatusCodes.CONFLICT
     
     return mp_cmd_assigner(entity.id, cmd_id, _params, ip)
@@ -313,7 +338,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
     projector = pysdcp.Projector(ip)
 
     def cmd_error():
-        print("Error while executing the command: " + cmd_name)
+        _LOG.error("Error while executing the command: " + cmd_name)
         return ucapi.StatusCodes.SERVER_ERROR
 
     #TODO Separate error messages for timeouts
@@ -404,7 +429,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                 else:
                     return cmd_error()
             else:
-                print("Unknown source: " + source)
+                _LOG.warn("Unknown source: " + source)
                 return cmd_error()
 
         case \
@@ -463,7 +488,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                     return cmd_error()
         
         case _:
-            print("Command not implemented: " + cmd_name)
+            _LOG.error("Command not implemented: " + cmd_name)
             return ucapi.StatusCodes.NOT_IMPLEMENTED
 
 
@@ -487,7 +512,7 @@ async def on_r2_enter_standby() -> None:
 
     Disconnect every projector instances.
     """
-    print("Enter standby")
+    _LOG.debug("Enter standby")
 
 
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
@@ -497,7 +522,7 @@ async def on_r2_exit_standby() -> None:
 
     Connect all projector instances.
     """
-    print("Exit standby")
+    _LOG.debug("Exit standby")
 
 
 @api.listens_to(ucapi.Events.SUBSCRIBE_ENTITIES)
@@ -518,7 +543,7 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
             else:
                 return ucapi.media_player.States.OFF
         except:
-            print("Can't get power status from projector. Set to Unknown")
+            _LOG.warn("Can't get power status from projector. Set to Unknown")
             return ucapi.media_player.States.UNKNOWN
         
     def get_attribute_muted():
@@ -528,19 +553,19 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
             else:
                 return False
         except:
-            print("Can't get mute status from projector. Set to False")
+            _LOG.warn("Can't get mute status from projector. Set to False")
             return False
         
     def get_attribute_source():
         try:
             return projector.get_input()
         except:
-            print("Can't get input from projector. Set to None")
+            _LOG.warn("Can't get input from projector. Set to None")
             return None
 
 
     for entity_id in entity_ids:
-        print("Subscribe entities event: " + entity_id)
+        _LOG.debug("Subscribe entities event: " + entity_id)
 
         state = get_attribute_power()
         muted = get_attribute_muted()
@@ -557,20 +582,21 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
 @api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)
 async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     """On unsubscribe, we disconnect the objects and remove listeners for events."""
-    print("Unsubscribe entities event: %s", entity_ids)
+    _LOG.debug("Unsubscribe entities event: %s", entity_ids)
 
 
 
 if __name__ == "__main__":
-    logging.basicConfig()
+    logging.basicConfig(format='%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    #TODO Use logging function instead of print()
+    level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
+    logging.getLogger("driver").setLevel(level)
+
+    #Bugs
     #FIXME WS connection closed and not reestablish after remote reboot due to a system freeze. Can not be reproduced with a manual reboot
     #FIXME .local domainname changed after system freeze and the remote could not reconnect to the driver. Had to manually change the driver url to the new url. The domain didn't changed after a manual container restart. Why? Docker problem?
 
-    print("Starting driver")
-
-    #TODO First check if there are any configured entities on the remote and then check if config file exists
+    _LOG.debug("Starting driver")
 
     if get_setup_complete():
 
@@ -579,20 +605,25 @@ if __name__ == "__main__":
 
             print(CFG_FILENAME + " found")
 
-            info = get_pjinfo(get_ip())
-            id = info["id"]
+            with open(CFG_FILENAME, "r") as f:
+                config = json.load(f)  
 
-            if api.available_entities.contains(id):
-                print("Entity with id " + id + " is already in storage")
+            if "id" and "name" in config:
+                id = config["id"]
+                name = config["name"]
+                if api.available_entities.contains(id):
+                    _LOG.info("Entity with id " + id + " is already in storage as available entity")
+                else:
+                    _LOG.debug("Add entity with id " + id + " as available entity")
+                    add_media_player(get_ip(), id, name)
             else:
-                print("Add entity with id " + id)
-                add_media_player(get_ip())
+                _LOG.error("Error in " + CFG_FILENAME + ". ID and name not found")
 
         else:
-            print(CFG_FILENAME + " not found. Please restart the setup process")
+            _LOG.warn(CFG_FILENAME + " not found. Please restart the setup process")
     else:
-        print("Driver setup not complete. Please start the setup process")
+        _LOG.info("Driver setup has not been complete. Please start the setup process")
 
-
+    #TODO Why do certain markdown styles like ** #(###) and \n not work in setup_data_schema although they are used in the library example files?
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))
     loop.run_forever()

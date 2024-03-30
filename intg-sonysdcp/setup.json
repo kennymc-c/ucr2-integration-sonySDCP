@@ -31,6 +31,17 @@
             "de": "Gib die IP-Adresse des Projektors ein"
             },
           "field": {"text": {"value": ""}}
+        },
+        {
+          "id": "note",
+          "field": {
+              "label": {
+                  "value": {
+                      "en": "After clicking Next, certain data is requested from the projector. This process can take **up to 30 seconds**.\nHowever, the interval can be shortened to a minimum of 10 seconds in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_.",
+                      "de": "Nach dem Klick auf Weiter werden bestimmte Daten vom Projektor abgerufen. Dieser Vorgang kann **bis zu 30 Sekunden** dauern.\nDer Interval kann aber im Webinterface des Projektors unter _Setup/Advanced Menu/Advertisement/Interval_ auf minimal 10 Sekunden verkürzt werden."
+                  }
+              }
+          }
         }
       ]
     }
