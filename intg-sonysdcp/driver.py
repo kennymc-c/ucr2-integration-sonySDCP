@@ -120,7 +120,6 @@ async def get_pjinfo(ip: str):
             projector = pysdcp.Projector(ip)
             
             _LOG.info("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service. This may take up to 30 seconds")
-            #TODO Also mention this in the setup dialog when entering the ip
 
             pjinfo = projector.get_pjinfo()
             if pjinfo:
@@ -277,7 +276,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         #Get id and name from projector
         
         #Preferred solution: Via a coroutine running in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval
-        #TODO Doesn't work in this form. Help appreciated
+        #TODO Running get_pjinfo() in background doesn't work in this form. Help appreciated
         # global projector_data
         # #asyncio.get_running_loop()
         # nest_asyncio.apply()
@@ -624,6 +623,6 @@ if __name__ == "__main__":
     else:
         _LOG.info("Driver setup has not been complete. Please start the setup process")
 
-    #TODO Why do certain markdown styles like ** #(###) and \n not work in setup_data_schema although they are used in the library example files?
+    #TODO Ask why ** and \n markdown styles do not work in setup_data_schema although they are used in the library example files
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))
     loop.run_forever()
