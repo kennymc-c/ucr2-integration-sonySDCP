@@ -33,8 +33,8 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
     - Lens Focus Far/Near
     - Lens Zoom Large/Small
 
-\* *Only works if a signal is present at the input* \
-\** *May not work with all signal inputs*
+\* _Only works if a video signal is present at the input_ \
+\** _May not work with all video signals_
 
 ### Supported attributes:
 
@@ -46,8 +46,8 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 ### Planned features:
 
 - Add remaining commands from protocol.py
-- Picture position and advanced iris commands (needs testers as i only own a VPL-VW-270 that doesn't support lens memory and iris control)
-- Auto discovery of the projector (already supported by pySDCP)
+- Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
+- Auto discovery of the projector
 - Additional sensor entity to show the lamp time
 
 *Planned improvements are labeled with #TODO in the code*
@@ -78,9 +78,15 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 
 #### Activate SDCP/PJTalk
 
-Open the projectors web interface and go to *Setup/Advanced Menu (left menu)/PJTalk*, activate the *Start PJ Talk Service* checkbox and click on *Apply*
+Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJTalk_, activate the *Start PJ Talk Service* checkbox and click on _Apply_.
 
 ![webinterface](webinterface.png)
+
+#### Change SDAP Interval
+
+During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. This relatively long interval can lead to heartbeat timeouts to the remotes websocket integration api. The workaround is to shorten the interval to the minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
+
+![advertisement](advertisement.png)
 
 #### Requirements
 
