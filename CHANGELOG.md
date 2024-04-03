@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+
+## [0.2-beta] - 2024-04-04
+
+### Breaking Changes
+- Generate entity name from projector model name and entity id from model and serial number.
+  - **This requires existing users to remove the integration on the remote, restart the integration and then run the setup process again. In existing activities/macros the old entity has to be removed and replaced by the new entity. Button mappings and on/off sequences have to be updated as well**
+  - Note: The projector sends data only **every 30 seconds** by default and the interval should therefore be shortened to a minimum of 10 seconds in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_ to avoid timeouts to the remote and the integration. Otherwise the websocket connection to the remote could be reset if data is returned to slow to the integration which results in a spinning wheel in the setup flow.
+
+### Added
+- Optimize setup workflow and add a setup complete flag to config.json
+- Use logging module instead of print()
+
 ### Fixed
 - Added a missing comma that was causing two simple commands to show as a single command
 - Fixed a naming problem for picture presets

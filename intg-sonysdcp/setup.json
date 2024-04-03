@@ -1,11 +1,11 @@
 {
-    "driver_id": "sonysdcp-test",
-    "version": "0.1-test",
-    "release_date": "2024-03-24",
+    "driver_id": "sonysdcp",
+    "version": "0.2",
+    "release_date": "2024-04-04",
     "min_core_api": "0.24.3",
     "name": { 
-        "en": "Sony Projector Test",
-        "de": "Sony Projektor Test"
+        "en": "Sony Projector",
+        "de": "Sony Projektor"
       },
     "icon": "uc:camera",
     "description": {
@@ -24,25 +24,23 @@
         "de": "Konfiguration"
       },
       "settings": [
-        {  
+      {  
           "id": "ip",
           "label": {
             "en": "Enter the IP address of the projector",
             "de": "Gib die IP-Adresse des Projektors ein"
             },
           "field": {"text": {"value": ""}}
-        },
-        {
-          "id": "note",
-          "field": {
-              "label": {
-                  "value": {
-                      "en": "### Note\nAfter clicking Next, certain data is requested from the projector. This process can take **up to 30 seconds**.\nHowever, the interval can be shortened to a minimum of 10 seconds in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_.\n",
-                      "de": "### Hinweis\nNach dem Klick auf Weiter werden bestimmte Daten vom Projektor abgerufen. Dieser Vorgang kann **bis zu 30 Sekunden** dauern.\nDer Interval kann aber im Webinterface des Projektors unter _Setup/Advanced Menu/Advertisement/Interval_ auf minimal 10 Sekunden verkürzt werden.\n"
-                  }
-              }
-          }
+      },
+      {
+        "id": "note",
+        "label": {"en": "Note", "de": "Hinweis"},
+        "field": { "label": { "value": {
+            "en": "By clicking on next, the serial number and model name is requested from the projector. This data is only send **every 30 seconds** by default and the interval should therefore be shortened to a minimum of **10 seconds** in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_ to avoid timeouts to the remote and the integration",
+            "de": "Durch den Klick auf Weiter werden die Seriennummer und der Name des Models vom Projektor abgerufen. Diese Daten werden standardmäßig nur **alle 30 Sekunden** gesendet und der Interval sollte deshalb im Webinterface des Projektors unter _Setup/Advanced Menu/Advertisement/Interval_ auf minimal **10 Sekunden** verkürzt werden, um Timeouts zur Remote und der Integration zu verhindern."
+            } }
         }
+      }
       ]
     }
 }

@@ -107,13 +107,13 @@ python3 intg-sonysdcp/driver.py
 
 ### Run as a Docker container
 
-For the mDNS adventisement to work correctly it's advised to start the integration in the host network (`--net=host`). You can also set the websocket listening port with the environment variable `UC_INTEGRATION_HTTP_PORT` or set the listening interface with `UC_INTEGRATION_INTERFACE`. See available [environment variables](https://github.com/unfoldedcircle/integration-python-library#environment-variables)
+For the mDNS advertisement to work correctly it's advised to start the integration in the host network (`--net=host`). You can also set the websocket listening port with the environment variable `UC_INTEGRATION_HTTP_PORT`, set the listening interface with `UC_INTEGRATION_INTERFACE` or change the default debug log level with `UC_LOG_LEVEL`. See available [environment variables](https://github.com/unfoldedcircle/integration-python-library#environment-variables)
 in the Python integration library.
 
 All data is mounted to `/usr/src/app`:
 
 ```shell
-docker run --net=host -v './localdir/ucr2-integration-sonySDCP':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
+docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sonySDCP':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
 ```
 
 ## Build self-contained binary for Remote Two

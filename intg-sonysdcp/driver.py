@@ -9,16 +9,13 @@ import json
 import os
 import ipaddress
 
-#import nest_asyncio
-
 import pysdcp
 from pysdcp.protocol import *
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
-CFG_FILENAME = "config-test.json"
-projector_data = {}
+CFG_FILENAME = "config.json"
 id = ""
 name = ""
 
@@ -70,9 +67,9 @@ def get_setup_complete():
                 if flag == True:
                     return True
                 elif flag == False:
+                    _LOG.warn("Last setup process was not successful")
                     return False
         except KeyError:
-            _LOG.info("Setup has not been completed yet")
             return False
         except:
             raise Exception("Error while reading setup_complete flag from " + CFG_FILENAME)
@@ -177,20 +174,20 @@ def add_media_player(ip: str, id: str, name: str):
         options={
             ucapi.media_player.Options.SIMPLE_COMMANDS: [
                 "MODE_PRESET_REF",
+                "MODE_PRESET_USER",
                 "MODE_PRESET_TV",
                 "MODE_PRESET_PHOTO",
                 "MODE_PRESET_GAME",
                 "MODE_PRESET_BRIGHT_CINEMA",
                 "MODE_PRESET_BRIGHT_TV",
-                "MODE_PRESET_USER",
-                "MODE_ASPECT_RATIO_NORMAL",
-                "MODE_ASPECT_RATIO_V_STRETCH",
-                "MODE_ASPECT_RATIO_ZOOM_1_85",
-                "MODE_ASPECT_RATIO_ZOOM_2_35",
-                "MODE_ASPECT_RATIO_STRETCH",
-                "MODE_ASPECT_RATIO_SQUEEZE",
                 "MODE_PRESET_CINEMA_FILM_1",
                 "MODE_PRESET_CINEMA_FILM_2",
+                "MODE_ASPECT_RATIO_NORMAL",
+                "MODE_ASPECT_RATIO_ZOOM_1_85",
+                "MODE_ASPECT_RATIO_ZOOM_2_35",
+                "MODE_ASPECT_RATIO_V_STRETCH",
+                "MODE_ASPECT_RATIO_SQUEEZE",
+                "MODE_ASPECT_RATIO_STRETCH",
                 "LENS_SHIFT_UP",
                 "LENS_SHIFT_DOWN",
                 "LENS_SHIFT_LEFT",
@@ -223,14 +220,8 @@ async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
         return await handle_driver_setup(msg)
 
     _LOG.error("Error during setup")
+    setup_complete(False)
     return ucapi.SetupError()
-
-
-
-async def request_projector_info(ip: str):
-    global projector_data
-    projector_data = get_pjinfo(ip)
-    await projector_data
 
 
 
@@ -275,15 +266,24 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
         #Get id and name from projector
         
-        #Preferred solution: Via a coroutine running in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval
-        #TODO Running get_pjinfo() in background doesn't work in this form. Help appreciated
+        #TODO Running get_pjinfo() in background doesn't work in this form
+        #Preferred solution: Run get_pjinfo as a coroutine in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval
+
+        # import nest_asyncio #Haven't found a way to prevent the loop is already running error without using this module
+        # projector_data = {}
+
+        # async def request_projector_info(ip: str):
+        #   global projector_data
+        #   projector_data = get_pjinfo(ip)
+        #   await projector_data
+        
         # global projector_data
-        # #asyncio.get_running_loop()
-        # nest_asyncio.apply()
+        # nest_asyncio.apply() # Should also work with asyncio.get_running_loop() but this still results in a loop is already running error
         # loop.run_until_complete(request_projector_info(ip))
 
+
         #Backup solution without a coroutine.
-        #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection otherwise
+        #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection before
         await get_pjinfo(ip)
 
         global id
@@ -295,7 +295,6 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         if id and name != "":
             #Add entities with their corresponding command handler
             _LOG.info("Add media player entity from ip " + ip + "id " + id + " and " + name)
-
             add_media_player(ip, id, name)
 
             _LOG.info("Setup complete")
@@ -621,7 +620,7 @@ if __name__ == "__main__":
         else:
             _LOG.warn(CFG_FILENAME + " not found. Please restart the setup process")
     else:
-        _LOG.info("Driver setup has not been complete. Please start the setup process")
+        _LOG.info("Driver setup has not been completed. Please start the setup process")
 
     #TODO Ask why ** and \n markdown styles do not work in setup_data_schema although they are used in the library example files
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))
