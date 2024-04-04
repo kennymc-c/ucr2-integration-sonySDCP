@@ -23,6 +23,7 @@ loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
         
 #TODO Split up driver.py into separate files
+#TODO Check if min_core_api has any effect. If not create a bug ticket
 
 
 

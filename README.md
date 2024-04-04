@@ -90,7 +90,7 @@ During the initial setup the integration tries to query data from the projector 
 
 #### Requirements
 
-- At least firmware 1.7.4 to support simple commands
+- UCR2 firmware 1.7.4 or newer to support simple commands
 - Python 3.11
 - Install Libraries:  
   (using a [virtual environment](https://docs.python.org/3/library/venv.html) is highly recommended)
@@ -172,7 +172,7 @@ and under the GitHub [releases](/releases).
 
 ## Contributions
 
-Contributions to add new feature, implement #TODOs from the code or improve the code quality and stability are welcome! Please fork this repository first and then create a pull request to merge your commits and explain what you want to change or add.
+Contributions to add new feature, implement #TODOs from the code or improve the code quality and stability are welcome! First check whether there are other branches in this repository that maybe already include your feature. If not, please fork this repository first and then create a pull request to merge your commits and explain what you want to change or add.
 
 ## License
 
