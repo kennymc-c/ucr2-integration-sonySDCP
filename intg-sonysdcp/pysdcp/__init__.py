@@ -194,6 +194,32 @@ class Projector:
         self.ip = addr[0]
         self.is_init = True
 
+    def get_pjinfo(self, udp_ip: str = None, udp_port: int = None, timeout=None):
+        '''
+        Returns ip, serial and model name from projector via SDAP advertisement service as a dictionary. Can take up to 30 seconds.
+        '''
+        self.UDP_PORT = udp_port if udp_port is not None else self.UDP_PORT
+        self.UDP_IP = udp_ip if udp_ip is not None else self.UDP_IP
+        timeout = timeout if timeout is not None else self.UDP_TIMEOUT
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        sock.bind((self.UDP_IP, self.UDP_PORT))
+
+        sock.settimeout(timeout)
+        try:
+            SDAP_buffer, addr = sock.recvfrom(1028)
+        except socket.timeout as e:
+            return False
+        
+        serial = unpack('>I', SDAP_buffer[20:24])[0]
+        model = decode_text_field(SDAP_buffer[8:20])
+        ip = addr[0]
+
+        result = {"model":model, "serial":serial, "ip":ip}
+
+        return result
+
     def set_power(self, on=True):
         self._send_command(action=ACTIONS["SET"], command=COMMANDS["SET_POWER"],
                            data=POWER_STATUS["START_UP"] if on else POWER_STATUS["STANDBY"])
