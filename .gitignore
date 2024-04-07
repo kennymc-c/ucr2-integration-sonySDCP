@@ -401,3 +401,4 @@ FodyWeavers.xsd
 intg-sonysdcp/pysdcp_test.py
 intg-sonysdcp/config.json
 intg-sonysdcp/config-test.json
+.venv/

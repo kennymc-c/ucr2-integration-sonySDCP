@@ -169,8 +169,13 @@ class Projector:
             _, is_success, _, data = process_command_response(response_buf)
 
             if not is_success:
-                raise Exception(
-                "Received failed status from projector while sending command 0x{:x}. Error 0x{:x}".format(command, data))
+                command = "{:x}".format(command)
+                error_code = "{:x}".format(data)
+                try:
+                    error_msg = RESPONSE_ERROR[int(error_code)]
+                except KeyError:
+                    error_msg = "Error code: " + error_code
+                raise Exception("Received failed status from projector while sending command 0x" + command + ". " + error_msg)
             
             return data
 

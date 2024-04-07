@@ -183,3 +183,11 @@ POWER_STATUS = {
     "COOLING": 4,
     "COOLING2": 5
 }
+
+RESPONSE_ERROR = {
+    102: "Item Error: Invalid Item Request",
+    103: "Item Error: Invalid Length",
+    104: "Item Error: Invalid Data",
+    111: "Item Error: Short Data",
+    180: "Item Error: Not Applicable Item",
+}

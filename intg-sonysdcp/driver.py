@@ -13,6 +13,7 @@ import pysdcp
 from pysdcp.protocol import *
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
+_LOG_pysdcp = logging.getLogger("pySDCP")
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
 CFG_FILENAME = "config.json"
@@ -68,7 +69,7 @@ def get_setup_complete():
                 if flag == True:
                     return True
                 elif flag == False:
-                    _LOG.warn("Last setup process was not successful")
+                    _LOG.warning("Last setup process was not successful")
                     return False
         except KeyError:
             return False
@@ -143,7 +144,7 @@ async def get_pjinfo(ip: str):
             return True
             
     else:
-        _LOG.warn(CFG_FILENAME + " not found. Please start the setup process")
+        _LOG.warning(CFG_FILENAME + " not found. Please start the setup process")
         return False
 
 
@@ -203,7 +204,7 @@ def add_media_player(ip: str, id: str, name: str):
     )
 
     api.available_entities.add(media_player)
-    print("Added media player entity")
+    _LOG.info("Added media player entity")
 
 
 
@@ -237,11 +238,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     """
 
     # if msg.reconfigure:
-    #     print("Ignoring driver reconfiguration request")
-
-    # print("Clear all available and configured entities")
-    # api.available_entities.clear()
-    # api.configured_entities.clear()
+    #     _LOG.info("Ignoring driver reconfiguration request")
 
     #Check if ip address has been entered
     if msg.setup_data["ip"] != "":
@@ -263,7 +260,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         with open(CFG_FILENAME, "w") as f:
             json.dump(ip_json, f)
 
-        _LOG.debug("IP address stored in " + CFG_FILENAME)
+        _LOG.info("IP address stored in " + CFG_FILENAME)
 
         #Get id and name from projector
         
@@ -303,7 +300,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             return ucapi.SetupComplete()
     
     else:
-        print("No IP address has been entered")
+        _LOG.error("No IP address has been entered")
         return ucapi.SetupError()
 
 
@@ -320,7 +317,10 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     :return: status of the command
     """
 
-    _LOG.info(f"Received {cmd_id} command for {entity.id}. Optional parameter: {_params}")
+    if _params == None:
+        _LOG.info(f"Received {cmd_id} command for {entity.id}")
+    else:
+        _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
     
     try:
         ip = get_ip()
@@ -336,100 +336,123 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
 
     projector = pysdcp.Projector(ip)
 
-    def cmd_error():
-        _LOG.error("Error while executing the command: " + cmd_name)
-        return ucapi.StatusCodes.SERVER_ERROR
+    def cmd_error(msg: str = None):
+        if msg == None:
+            _LOG.error("Error while executing the command: " + cmd_name)
+            return ucapi.StatusCodes.SERVER_ERROR
+        else:
+            _LOG_pysdcp.error(msg)
+            return ucapi.StatusCodes.BAD_REQUEST
 
-    #TODO Separate error messages for timeouts
-    #TODO Show the exception message from pySDCP in the integration log and also send a response code to the api
     #TODO Find a get command that shows the status of the current input signal to prevent errors for commands like aspect ratio and picture preset that don't work without a input signal. Probably better implement this in pySDC itself
 
     match cmd_name:
 
         case ucapi.media_player.Commands.ON:
-            if projector.set_power(True):
-                api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON})
-                return ucapi.StatusCodes.OK
-            else:
-                return cmd_error()
-            
-        case ucapi.media_player.Commands.OFF:
-            if projector.set_power(False):
-                api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF})
-                return ucapi.StatusCodes.OK
-            else:
-                return cmd_error()
-
-        case ucapi.media_player.Commands.TOGGLE:
-            if projector.get_power() == True:
-                if projector.set_power(False):
-                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF})
-                    return ucapi.StatusCodes.OK
-                else:
-                    return cmd_error()
-            elif projector.get_power() == False:
+            try:
                 if projector.set_power(True):
                     api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON})
                     return ucapi.StatusCodes.OK
                 else:
                     return cmd_error()
-            else:
-                return cmd_error()
-
-        case ucapi.media_player.Commands.MUTE_TOGGLE:
-            if projector.get_muting() == True:
-                if projector.set_muting(False):
-                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: False})
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            
+        case ucapi.media_player.Commands.OFF:
+            try:
+                if projector.set_power(False):
+                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF})
                     return ucapi.StatusCodes.OK
                 else:
                     return cmd_error()
-            elif projector.get_muting() == False:
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+
+        case ucapi.media_player.Commands.TOGGLE:
+            try:
+                if projector.get_power() == True:
+                    if projector.set_power(False):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
+                elif projector.get_power() == False:
+                    if projector.set_power(True):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
+                else:
+                    return cmd_error()
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+
+        case ucapi.media_player.Commands.MUTE_TOGGLE:
+            try:
+                if projector.get_muting() == True:
+                    if projector.set_muting(False):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: False})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
+                elif projector.get_muting() == False:
+                    if projector.set_muting(True):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: True})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
+                else:
+                    return cmd_error()
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+
+        case ucapi.media_player.Commands.MUTE:
+            try:
                 if projector.set_muting(True):
                     api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: True})
                     return ucapi.StatusCodes.OK
                 else:
                     return cmd_error()
-            else:
-                return cmd_error()
-
-        case ucapi.media_player.Commands.MUTE:
-            if projector.set_muting(True):
-                api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: True})
-                return ucapi.StatusCodes.OK
-            else:
-                return cmd_error()
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
         
         case ucapi.media_player.Commands.UNMUTE:
-            if projector.set_muting(False):
-                api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: False})
-                return ucapi.StatusCodes.OK
-            else:
-                return cmd_error()
+            try:
+                if projector.set_muting(False):
+                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.MUTED: False})
+                    return ucapi.StatusCodes.OK
+                else:
+                    return cmd_error()
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
         
         case ucapi.media_player.Commands.HOME:
             try:
                 projector._send_command(action=ACTIONS["SET"], command=COMMANDS_IR["MENU"])
                 return ucapi.StatusCodes.OK
-            except:
-                return cmd_error()
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
 
         case ucapi.media_player.Commands.SELECT_SOURCE:
             source = params["source"]
-            if source == "HDMI 1":
-                if projector.set_HDMI_input(1):
-                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.SOURCE: source})
-                    return ucapi.StatusCodes.OK
+            try:
+                if source == "HDMI 1":
+                    if projector.set_HDMI_input(1):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.SOURCE: source})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
+                elif source == "HDMI 2":
+                    if projector.set_HDMI_input(2):
+                        api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.SOURCE: source})
+                        return ucapi.StatusCodes.OK
+                    else:
+                        return cmd_error()
                 else:
-                    return cmd_error()
-            elif source == "HDMI 2":
-                if projector.set_HDMI_input(2):
-                    api.configured_entities.update_attributes(id, {ucapi.media_player.Attributes.SOURCE: source})
-                    return ucapi.StatusCodes.OK
-                else:
-                    return cmd_error()
-            else:
-                _LOG.warn("Unknown source: " + source)
-                return cmd_error()
+                    _LOG.error("Unknown source: " + source)
+                    return ucapi.StatusCodes.BAD_REQUEST
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
 
         case \
             "MODE_ASPECT_RATIO_NORMAL" | \
@@ -444,27 +467,27 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                         return ucapi.StatusCodes.OK
                     else:
                         return cmd_error()
-                except:
-                    return cmd_error()
+                except Exception or ConnectionError as e:
+                    return cmd_error(e)
                 
         case \
-            "MODE_PRESET_CINEMA_FILM_1" | \
-            "MODE_PRESET_CINEMA_FILM_2" | \
-            "MODE_PRESET_REF" | \
-            "MODE_PRESET_TV" | \
-            "MODE_PRESET_PHOTO" | \
-            "MODE_PRESET_GAME" | \
-            "MODE_PRESET_BRIGHT_CINEMA" | \
-            "MODE_PRESET_BRIGHT_TV" | \
-            "MODE_PRESET_USER":
-                preset = cmd_name.replace("MODE_PRESET_", "")
+                "MODE_PRESET_CINEMA_FILM_1" | \
+                "MODE_PRESET_CINEMA_FILM_2" | \
+                "MODE_PRESET_REF" | \
+                "MODE_PRESET_TV" | \
+                "MODE_PRESET_PHOTO" | \
+                "MODE_PRESET_GAME" | \
+                "MODE_PRESET_BRIGHT_CINEMA" | \
+                "MODE_PRESET_BRIGHT_TV" | \
+                "MODE_PRESET_USER":
                 try:
+                    preset = cmd_name.replace("MODE_PRESET_", "")
                     if projector.set_preset(preset):
                         return ucapi.StatusCodes.OK
                     else:
                         return cmd_error()
-                except:
-                    return cmd_error()
+                except Exception or ConnectionError as e:
+                    return cmd_error(e)
 
         case \
             ucapi.media_player.Commands.CURSOR_ENTER | \
@@ -483,8 +506,8 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                 try:
                     projector._send_command(action=ACTIONS["SET"], command=COMMANDS_IR[cmd_name.upper()])
                     return ucapi.StatusCodes.OK
-                except:
-                    return cmd_error()
+                except Exception or ConnectionError as e:
+                    return cmd_error(e)
         
         case _:
             _LOG.error("Command not implemented: " + cmd_name)
@@ -495,12 +518,14 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
 
 @api.listens_to(ucapi.Events.CONNECT)
 async def on_r2_connect() -> None:
+    _LOG.debug("Received connect event message from remote")
     await api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
 
 @api.listens_to(ucapi.Events.DISCONNECT)
 #TODO Find out how to prevent the remote from constantly reconnecting when the integration is not running without deleting the integration configuration on the remote every time
 async def on_r2_disconnect() -> None:
+    _LOG.debug("Received disconnect event message from remote")
     await api.set_device_state(ucapi.DeviceStates.DISCONNECTED)
 
 
@@ -511,7 +536,7 @@ async def on_r2_enter_standby() -> None:
 
     Disconnect every projector instances.
     """
-    _LOG.debug("Enter standby")
+    _LOG.debug("Received enter standby event message from remote")
 
 
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
@@ -521,7 +546,7 @@ async def on_r2_exit_standby() -> None:
 
     Connect all projector instances.
     """
-    _LOG.debug("Exit standby")
+    _LOG.debug("Received exit standby event message from remote")
 
 
 @api.listens_to(ucapi.Events.SUBSCRIBE_ENTITIES)
@@ -531,7 +556,8 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
 
     :param entity_ids: entity identifiers.
     """
-    
+    _LOG.debug("Subscribe entities event: %s", entity_ids)
+
     projector = pysdcp.Projector(get_ip())
 
 
@@ -542,7 +568,7 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
             else:
                 return ucapi.media_player.States.OFF
         except:
-            _LOG.warn("Can't get power status from projector. Set to Unknown")
+            _LOG.warning("Can't get power status from projector. Set to Unknown")
             return ucapi.media_player.States.UNKNOWN
         
     def get_attribute_muted():
@@ -552,14 +578,14 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
             else:
                 return False
         except:
-            _LOG.warn("Can't get mute status from projector. Set to False")
+            _LOG.warning("Can't get mute status from projector. Set to False")
             return False
         
     def get_attribute_source():
         try:
             return projector.get_input()
         except:
-            _LOG.warn("Can't get input from projector. Set to None")
+            _LOG.warning("Can't get input from projector. Set to None")
             return None
 
 
@@ -595,6 +621,8 @@ if __name__ == "__main__":
     #FIXME WS connection closed and not reestablish after remote reboot due to a system freeze. Can not be reproduced with a manual reboot
     #FIXME .local domainname changed after system freeze and the remote could not reconnect to the driver. Had to manually change the driver url to the new url. The domain didn't changed after a manual container restart. Why? Docker problem?
 
+    #TODO Create attributes puller function
+
     _LOG.debug("Starting driver")
 
     if get_setup_complete():
@@ -602,7 +630,7 @@ if __name__ == "__main__":
         #Check if configuration file has already been created and add all entities
         if os.path.isfile(CFG_FILENAME):
 
-            print(CFG_FILENAME + " found")
+            _LOG.debug(CFG_FILENAME + " found")
 
             with open(CFG_FILENAME, "r") as f:
                 config = json.load(f)  
@@ -619,10 +647,9 @@ if __name__ == "__main__":
                 _LOG.error("Error in " + CFG_FILENAME + ". ID and name not found")
 
         else:
-            _LOG.warn(CFG_FILENAME + " not found. Please restart the setup process")
+            _LOG.warning(CFG_FILENAME + " not found. Please restart the setup process")
     else:
         _LOG.info("Driver setup has not been completed. Please start the setup process")
 
-    #TODO Ask why ** and \n markdown styles do not work in setup_data_schema although they are used in the library example files
     loop.run_until_complete(api.init("setup.json", driver_setup_handler))
     loop.run_forever()
