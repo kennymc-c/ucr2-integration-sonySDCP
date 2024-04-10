@@ -16,7 +16,7 @@ _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 _LOG_pysdcp = logging.getLogger("pySDCP")
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
-CFG_FILENAME = "config.json"
+CFG_FILENAME = "config-test.json"
 id = ""
 name = ""
 
