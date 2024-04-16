@@ -142,7 +142,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         with open(CFG_FILENAME, "w") as f:
             json.dump(ip_json, f)
 
-        _LOG.info("IP address stored in " + CFG_FILENAME)
+        _LOG.debug("IP address stored in " + CFG_FILENAME)
 
         #Check if SDCP Port is open
         SDCP_TCP_PORT = 53484
@@ -185,18 +185,23 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
         #Backup solution without a coroutine.
         #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection before
-        await get_pjinfo(ip)
+        try:
+            await get_pjinfo(ip)
+        except TimeoutError as t:
+            _LOG.error(t)
+            _LOG.info("Please check if the SDAP advertisement service is turned on")
+            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.TIMEOUT)
+        except Exception as e:
+            _LOG.error(e)
+            return ucapi.SetupError()
 
         global id
         global name
 
         if id and name == "":
-            _LOG.critical("Setup failed because of a timeout to the projector")
-            _LOG.debug("Set setup_complete flag to False")
-            setup_complete(False)
-            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.TIMEOUT)
-        else:
-            #Add entities with their corresponding command handler
+            _LOG.error("Got empty id and name variables")
+            return ucapi.SetupError()
+        elif id and name != "":
             _LOG.info("Add media player entity from ip " + ip + ", id " + id + " and name " + name)
             await media_player.add_mp(ip, id, name)
 
@@ -242,35 +247,31 @@ async def get_pjinfo(ip: str):
         config = load_pjinfo()
 
         if config == False:
-            projector = pysdcp.Projector(ip)
             
             _LOG.info("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service")
             _LOG.info("This may take up to 30 seconds depending on the interval setting of the projector")
 
-            pjinfo = projector.get_pjinfo()
+            try: 
+                pjinfo = pysdcp.Projector(ip).get_pjinfo()
+            except Exception as e:
+                raise TimeoutError(e)
+            
+            _LOG.debug("Got data from projector")
+            if "serial" and "model" in pjinfo:
+                _LOG.debug("Generate ID and name from serial and model")
+                id = pjinfo["model"] + "-" + str(pjinfo["serial"])
+                name = "Sony " + pjinfo["model"]
 
-            if pjinfo:
-                _LOG.debug("Got data from projector")
-                if "serial" and "model" in pjinfo:
-                    _LOG.debug("Generate ID and name from serial and model")
-                    id = pjinfo["model"] + "-" + str(pjinfo["serial"])
-                    name = "Sony " + pjinfo["model"]
+                _LOG.debug("ID: " + id)
+                _LOG.debug("Name: " + name)
 
-                    _LOG.debug("ID: " + id)
-                    _LOG.debug("Name: " + name)
+                jsondata={"id": id, "name": name}
 
-                    jsondata={"id": id, "name": name}
+                store_pjinfo(jsondata)
 
-                    store_pjinfo(jsondata)
-
-                    return True
-                else:
-                    _LOG.error("Unknown values from projector: " + pjinfo)
-                    return False
+                return True
             else:
-                _LOG.error("Query data from projector failed")
-                _LOG.info("Please check if the projector is connected to the same network as the integration and the SDAP advertisement service is turned on")
-                return False    
+                raise Exception("Unknown values from projector: " + pjinfo)
                 
         else:
             id = config["id"]
@@ -278,5 +279,4 @@ async def get_pjinfo(ip: str):
             return True
             
     else:
-        _LOG.warning(CFG_FILENAME + " not found. Please start the setup process")
-        return False
+        raise Exception(CFG_FILENAME + " not found. Please restart the setup process")
