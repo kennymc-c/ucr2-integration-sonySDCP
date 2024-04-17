@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+
+## [0.3-beta] - 2024-04-17
+
 ### Added
 - Show pySDCP exception messages in log
 - Show SDCP error respond message according to Sony's documentation instead of just the error code
+
+### Changed
+- Split up setup flow and media player into separate files
+- Optimize SDAP setup flow
 
 ## [0.2-beta] - 2024-04-04
 
