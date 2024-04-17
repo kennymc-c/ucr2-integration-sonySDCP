@@ -214,8 +214,8 @@ class Projector:
         sock.settimeout(timeout)
         try:
             SDAP_buffer, addr = sock.recvfrom(1028)
-        except socket.timeout as e:
-            return False
+        except socket.timeout:
+            raise Exception("Timeout while waiting for data from projector")
         
         serial = unpack('>I', SDAP_buffer[20:24])[0]
         model = decode_text_field(SDAP_buffer[8:20])
