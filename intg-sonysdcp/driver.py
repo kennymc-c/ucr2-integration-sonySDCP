@@ -7,7 +7,6 @@ from typing import Any
 import ucapi
 import json
 import os
-import ipaddress
 
 import pysdcp
 from pysdcp.protocol import *
@@ -18,7 +17,7 @@ import media_player
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
-CFG_FILENAME = "config-test.json"
+CFG_FILENAME = "config.json"
 id = ""
 name = ""
 
