@@ -172,6 +172,9 @@ async def main():
     logging.basicConfig(format='%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
+    logging.getLogger("ucapi.api").setLevel(level)
+    logging.getLogger("ucapi.entities").setLevel(level)
+    logging.getLogger("ucapi.entity").setLevel(level)
     logging.getLogger("driver").setLevel(level)
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("setup").setLevel(level)
