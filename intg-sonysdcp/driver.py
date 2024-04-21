@@ -5,21 +5,17 @@ import logging
 from typing import Any
 
 import ucapi
-import json
 import os
 
-import pysdcp
 from pysdcp.protocol import *
 
+import config
 import setup
 import media_player
 
-_LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
-
 # os.environ["UC_INTEGRATION_INTERFACE"] = ""
-CFG_FILENAME = "config.json"
-id = ""
-name = ""
+
+_LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
 loop = asyncio.get_event_loop()
 api = ucapi.IntegrationAPI(loop)
@@ -27,40 +23,36 @@ api = ucapi.IntegrationAPI(loop)
 
 
 async def startcheck():
-    if setup.get_setup_complete():
+    #Load config into runtime storage
+    try:
+        config.setup.load()
+    except OSError as o:
+        _LOG.critical(o)
+        return False
 
-        _LOG.debug(CFG_FILENAME + " found")
+    if config.setup.get("setup_complete"):
+        id = config.setup.get("id")
+        name = config.setup.get("name")
 
-        with open(CFG_FILENAME, "r") as f:
-            config = json.load(f)  
-
-        if "id" and "name" in config:
-            id = config["id"]
-            name = config["name"]
-            if api.available_entities.contains(id):
-                _LOG.debug("Entity with id " + id + " is already in storage as available entity")
-            else:
-                _LOG.info("Add entity with id " + id + " as available entity")
-                await media_player.add_mp(get_ip(), id, name)
+        if api.available_entities.contains(id):
+            _LOG.debug("Entity with id " + id + " is already in storage as available entity")
         else:
-            _LOG.error("Error in " + CFG_FILENAME + ". ID and name not found")
+            _LOG.info("Add entity with id " + id + " and name " + name + " as available entity")
+            await media_player.add_mp(id, name)
 
+            
 
-
-def get_ip():
-    #Check if config json file exists
-    if os.path.isfile(CFG_FILENAME):
-
-        #Load ip address from config json file
-        with open(CFG_FILENAME, "r") as f:
-            config = json.load(f)
-        
-        if config["ip"] != "":
-            return config["ip"]
-        else:
-            _LOG.error("Error in " + CFG_FILENAME + ". No ip address found")
-    else:
-        _LOG.warning(CFG_FILENAME + " not found. Please start the setup process")
+async def attributes_poller(interval: int) -> None:
+    """Projector data poller."""
+    while True:
+            await asyncio.sleep(interval)
+            if config.setup.get("setup_complete"):
+                if config.setup.get("standby"):
+                    continue
+                try:
+                    await media_player.update_attributes()
+                except Exception as e:
+                    _LOG.warning(e)
 
 
 
@@ -80,12 +72,8 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
         _LOG.info(f"Received {cmd_id} command for {entity.id}")
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
-    
-    try:
-        ip = get_ip()
-    except:
-        _LOG.error("Could not load ip address from config json file")
-        return ucapi.StatusCodes.CONFLICT
+
+    ip = config.setup.get("ip")
     
     return media_player.mp_cmd_assigner(entity.id, cmd_id, _params, ip)
 
@@ -121,10 +109,13 @@ async def on_r2_enter_standby() -> None:
     """
     Enter standby notification from Remote Two.
 
-    Just show a debug log message as there is no permanent connection to the projector that needs to be closed.
+    Set config.R2_IN_STANDBY to True and show a debug log message as there is no permanent connection to the projector that needs to be closed.
     """
     _LOG.info("Received enter standby event message from remote")
 
+    _LOG.debug("Set config.R2_IN_STANDBY to True")
+    config.setup.set("standby", True)
+    
 
 
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
@@ -136,6 +127,9 @@ async def on_r2_exit_standby() -> None:
     """
     _LOG.info("Received exit standby event message from remote")
 
+    _LOG.debug("Set config.R2_IN_STANDBY to False")
+    config.setup.set("standby", False)
+
 
 
 @api.listens_to(ucapi.Events.SUBSCRIBE_ENTITIES)
@@ -145,51 +139,17 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
 
     :param entity_ids: entity identifiers.
     """
-    _LOG.info("Received subscribe entities event for: %s", entity_ids)
+    _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
-    projector = pysdcp.Projector(get_ip())
-
-    def get_attribute_power():
-        try:
-            if projector.get_power() == True:
-                return ucapi.media_player.States.ON
-            else:
-                return ucapi.media_player.States.OFF
-        except:
-            _LOG.warning("Can't get power status from projector. Set to Unknown")
-            return ucapi.media_player.States.UNKNOWN
-        
-    def get_attribute_muted():
-        try:
-            if projector.get_muting() == True:
-                return True
-            else:
-                return False
-        except:
-            _LOG.warning("Can't get mute status from projector. Set to False")
-            return False
-        
-    def get_attribute_source():
-        try:
-            return projector.get_input()
-        except:
-            _LOG.warning("Can't get input from projector. Set to None")
-            return None
-
+    config.setup.set("standby", False)
 
     for entity_id in entity_ids:
-        _LOG.info("Set entity attributes for: " + entity_id)
-
-        state = get_attribute_power()
-        muted = get_attribute_muted()
-        source = get_attribute_source()
-
-        api.configured_entities.update_attributes(entity_id, {
-            ucapi.media_player.Attributes.STATE: state,
-            ucapi.media_player.Attributes.MUTED: muted,
-            ucapi.media_player.Attributes.SOURCE: source,
-            ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
-        })
+        try:
+            await media_player.update_attributes(entity_id)
+        except OSError as o:
+            _LOG.critical(o)
+        except Exception as e:
+            _LOG.warning(e)
 
 
 
@@ -215,11 +175,15 @@ async def main():
     logging.getLogger("driver").setLevel(level)
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("setup").setLevel(level)
+    logging.getLogger("config").setLevel(level)
 
     _LOG.debug("Starting driver")
 
-    #TODO Create attributes puller function
-
+    if config.POLLER_INTERVAL == 0:
+        _LOG.info("POLLER_INTERVAL is " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes puller task")
+    else:
+        loop.create_task(attributes_poller(config.POLLER_INTERVAL))
+    
     await setup.init()
     await startcheck()
 

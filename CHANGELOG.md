@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+### Added
+- Added attributes puller function that checks all available integration attributes of the projector every 20 seconds by default. The interval can be changed in config.py. Set to 0 to deactivate this function.
+- Added runtime storage to reduce config file access load
+
 
 ## [0.3-beta] - 2024-04-17
 

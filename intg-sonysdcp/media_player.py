@@ -8,13 +8,73 @@ import ucapi
 import pysdcp
 from pysdcp.protocol import *
 
+import config
 import driver
 import setup
 
 _LOG = logging.getLogger(__name__)
 
 
-async def add_mp(ip: str, id: str, name: str):
+def get_attr_power(ip: str):
+    projector = pysdcp.Projector(ip)
+    try:
+        if projector.get_power() == True:
+            return ucapi.media_player.States.ON
+        else:
+            return ucapi.media_player.States.OFF
+    except:
+        _LOG.warning("Can't get power status from projector. Set to Unknown")
+        return ucapi.media_player.States.UNKNOWN
+    
+def get_attr_muted(ip: str):
+    projector = pysdcp.Projector(ip)
+    try:
+        if projector.get_muting() == True:
+            return True
+        else:
+            return False
+    except:
+        _LOG.warning("Can't get mute status from projector. Set to False")
+        return False
+    
+def get_attr_source(ip: str):
+    projector = pysdcp.Projector(ip)
+    try:
+        return projector.get_input()
+    except:
+        _LOG.warning("Can't get input from projector. Set to None")
+        return None
+    
+
+
+async def update_attributes(id: str = None):
+
+    if id == None:
+        id = config.setup.get("id")
+
+    ip = config.setup.get("ip")
+
+    try:
+        state = get_attr_power(ip)
+        muted = get_attr_muted(ip)
+        source = get_attr_source(ip)
+    except Exception as e:
+        raise Exception(e)
+    
+    _LOG.info("Updating entity attributes for: " + id)
+    try:
+        driver.api.configured_entities.update_attributes(id, {
+            ucapi.media_player.Attributes.STATE: state,
+            ucapi.media_player.Attributes.MUTED: muted,
+            ucapi.media_player.Attributes.SOURCE: source,
+            ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
+        })
+    except:
+        raise Exception("Error while updating attributes for entity id " + id)
+    
+
+
+async def add_mp(id: str, name: str):
 
     features = [
         ucapi.media_player.Features.ON_OFF, 
