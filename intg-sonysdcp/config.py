@@ -81,23 +81,23 @@ class setup:
                 raise OSError("Error in " + CFG_FILENAME + ". No data")
             
             setup.__conf["setup_complete"] = configfile["setup_complete"]
-            _LOG.debug("Loaded setup_complete into runtime storage from " + CFG_FILENAME)
+            _LOG.debug("Loaded setup_complete: " + str(configfile["setup_complete"]) + " into runtime storage from " + CFG_FILENAME)
 
             if not setup.__conf["setup_complete"]:
                 _LOG.warning("The setup was not completed the last time. Please restart the setup process")
-
-            if "ip" in configfile:
-                setup.__conf["ip"] = configfile["ip"]
-                _LOG.debug("Loaded ip into runtime storage from " + CFG_FILENAME)
             else:
-                _LOG.debug("Skip loading ip as it's not yet stored in the config file")
+                if "ip" in configfile:
+                    setup.__conf["ip"] = configfile["ip"]
+                    _LOG.debug("Loaded ip into runtime storage from " + CFG_FILENAME)
+                else:
+                    _LOG.debug("Skip loading ip as it's not yet stored in the config file")
 
-            if "id" and "name" in configfile:
-                setup.__conf["id"] = configfile["id"]
-                setup.__conf["name"] = configfile["name"]
-                _LOG.debug("Loaded id and name into runtime storage from " + CFG_FILENAME)
-            else:
-                _LOG.debug("Skip loading id and name as there are not yet stored in the config file")
+                if "id" and "name" in configfile:
+                    setup.__conf["id"] = configfile["id"]
+                    setup.__conf["name"] = configfile["name"]
+                    _LOG.debug("Loaded id and name into runtime storage from " + CFG_FILENAME)
+                else:
+                    _LOG.debug("Skip loading id and name as there are not yet stored in the config file")
 
         else:
             _LOG.info(CFG_FILENAME + " does not exist (yet). Please start the setup process")

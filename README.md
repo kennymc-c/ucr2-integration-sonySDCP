@@ -10,7 +10,6 @@ Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to cont
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
-<!--  #TODO If all commands from protocol.py have been implemented into pySDCP as separate commands create a upstream pull request and remove pySDCP files when it has been merged  -->
 
 ### Supported commands:
 
@@ -34,7 +33,9 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
     - Lens Zoom Large/Small
 
 \* _Only works if a video signal is present at the input_ \
-\** _May not work with all video signals_
+\** _May not work with all video signals_ \
+
+_If a command can't be processed by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log_
 
 ### Supported attributes:
 

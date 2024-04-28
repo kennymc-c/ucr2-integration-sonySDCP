@@ -6,6 +6,7 @@ from typing import Any
 
 import ucapi
 import os
+import atexit
 
 from pysdcp.protocol import *
 
@@ -42,11 +43,11 @@ async def startcheck():
 
             
 
-async def attributes_poller(interval: int) -> None:
+async def attributes_poller(id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
             await asyncio.sleep(interval)
-            if config.setup.get("setup_complete"):
+            if api.configured_entities.contains(id):
                 if config.setup.get("standby"):
                     continue
                 try:
@@ -165,9 +166,6 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 async def main():
-    #Bugs
-    #FIXME WS connection closed and not reestablish after remote reboot due to a system freeze. Can not be reproduced with a manual reboot
-    #FIXME .local domainname changed after system freeze and the remote could not reconnect to the driver. Had to manually change the driver url to the new url. The domain didn't changed after a manual container restart. Why? Docker problem?
 
     logging.basicConfig(format='%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -181,14 +179,15 @@ async def main():
     logging.getLogger("config").setLevel(level)
 
     _LOG.debug("Starting driver")
-
-    if config.POLLER_INTERVAL == 0:
-        _LOG.info("POLLER_INTERVAL is " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes puller task")
-    else:
-        loop.create_task(attributes_poller(config.POLLER_INTERVAL))
     
     await setup.init()
     await startcheck()
+
+    if config.setup.get("setup_complete"):
+        if config.POLLER_INTERVAL == 0:
+            _LOG.info("POLLER_INTERVAL is " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes puller task")
+        else:
+            loop.create_task(attributes_poller(config.setup.get("id"), config.POLLER_INTERVAL))
 
 
 

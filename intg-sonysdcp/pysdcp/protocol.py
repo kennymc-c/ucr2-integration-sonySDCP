@@ -184,10 +184,27 @@ POWER_STATUS = {
     "COOLING2": 5
 }
 
-RESPONSE_ERROR = {
-    102: "Item Error: Invalid Item Request",
-    103: "Item Error: Invalid Length",
-    104: "Item Error: Invalid Data",
-    111: "Item Error: Short Data",
-    180: "Item Error: Not Applicable Item",
+RESPONSE_ERRORS = {
+    0x101: "Item Error: Invalid Item",
+    0x102: "Item Error: Invalid Item Request",
+    0x103: "Item Error: Invalid Length",
+    0x104: "Item Error: Invalid Data",
+    0x111: "Item Error: Short Data",
+    0x180: "Item Error: Not Applicable Item",
+    0x201: "Community Error: Different Community",
+    0x1001: "Request Error: Invalid Version",
+    0x1002: "Request Error: Invalid Category",
+    0x1003: "Request Error: Invalid Request",
+    0x1011: "Request Error: Short Header",
+    0x1012: "Request Error: Short Community",
+    0x1013: "Request Error: Short Command",
+    0xF001: "Comm Error: Timeout",
+    0xF010: "Comm Error: Check Sum Error",
+    0xF020: "Comm Error: Framing Error",
+    0xF030: "Comm Error: Parity Error",
+    0xF040: "Comm Error: Over Run Error",
+    0xF050: "Comm Error: Other Comm Error",
+    0xF0F0: "Comm Error: Unknown Response",
+    0xF110: "NVRAM Error: Read Error",
+    0xF120: "NVRAM Error: Write Error",
 }

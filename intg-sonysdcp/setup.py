@@ -51,7 +51,7 @@ async def driver_setup_handler(msg: ucapi.SetupDriver) -> ucapi.SetupAction:
     if isinstance(msg, ucapi.DriverSetupRequest):
         return await handle_driver_setup(msg)
     elif isinstance(msg, ucapi.AbortDriverSetup):
-        _LOG.debug("Setup was aborted with code: %s", msg.error)
+        _LOG.info("Setup was aborted with code: %s", msg.error)
 
     _LOG.error("Error during setup")
     config.setup.set("setup_complete", False)
@@ -110,10 +110,14 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
         #Get id and name from projector
         
-        #TODO Run get_pjinfo as a coroutine in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval
+        #TODO Run get_pjinfo as a coroutine in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval. Doesn't work...
+
+        # cloop = asyncio.get_running_loop()
+        # cloop.run_until_complete(get_pjinfo(ip))
 
         #Backup solution without a coroutine:
         #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection before
+
         try:
             await get_pjinfo(ip)
         except TimeoutError as t:
@@ -123,6 +127,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         except Exception as e:
             _LOG.error(e)
             return ucapi.SetupError()
+        
         
         id = config.setup.get("id")
         name = config.setup.get("name")
@@ -136,7 +141,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     
 
 
-async def get_pjinfo(ip: str):  
+async def get_pjinfo(ip: str):
     _LOG.info("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service")
     _LOG.info("This may take up to 30 seconds depending on the interval setting of the projector")
 
@@ -162,5 +167,6 @@ async def get_pjinfo(ip: str):
             config.setup.set("name", name)
         except Exception as e:
             raise Exception(e)
+
     else:
         raise Exception("Unknown values from projector: " + pjinfo)

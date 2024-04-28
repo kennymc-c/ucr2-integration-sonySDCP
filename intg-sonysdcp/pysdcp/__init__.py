@@ -170,11 +170,11 @@ class Projector:
 
             if not is_success:
                 command = "{:x}".format(command)
-                error_code = "{:x}".format(data)
                 try:
-                    error_msg = RESPONSE_ERROR[int(error_code)]
+                    error_msg = RESPONSE_ERRORS[data]
                 except KeyError:
-                    error_msg = "Error code: " + error_code
+                    error_code = "{:x}".format(data)
+                    error_msg = "Unknown error code: " + error_code
                 raise Exception("Received failed status from projector while sending command 0x" + command + ". " + error_msg)
             
             return data

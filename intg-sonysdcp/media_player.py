@@ -148,7 +148,7 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
             _LOG.error(msg)
             return ucapi.StatusCodes.BAD_REQUEST
 
-    #TODO Find a get command that shows the status of the current input signal to prevent errors for commands like aspect ratio and picture preset that don't work without a input signal. Probably better implement this in pySDC itself
+    #TODO If all commands from protocol.py have been implemented into pySDCP as separate commands create a upstream pull request and remove pySDCP files when it has been merged
 
     match cmd_name:
 
@@ -292,6 +292,8 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                         return cmd_error()
                 except Exception or ConnectionError as e:
                     return cmd_error(e)
+
+        #TODO Beneficial for a DIY lens memory function: Lens shift up/down/left/right max + lens zoom large/small max simple commands to move lens faster than with slower remote command repeat function on the remote
 
         case \
             ucapi.media_player.Commands.CURSOR_ENTER | \
