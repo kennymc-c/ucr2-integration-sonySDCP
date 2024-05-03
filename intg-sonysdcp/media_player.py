@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from typing import Any
+import json
 
 import ucapi
 import pysdcp
@@ -61,16 +62,38 @@ async def update_attributes(id: str = None):
     except Exception as e:
         raise Exception(e)
     
-    _LOG.info("Updating entity attributes for: " + id)
-    try:
-        driver.api.configured_entities.update_attributes(id, {
-            ucapi.media_player.Attributes.STATE: state,
-            ucapi.media_player.Attributes.MUTED: muted,
-            ucapi.media_player.Attributes.SOURCE: source,
-            ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
-        })
-    except:
-        raise Exception("Error while updating attributes for entity id " + id)
+    stored_states = await driver.api.configured_entities.get_states()
+    for entity in stored_states:
+        attributes_stored = entity["attributes"]
+
+    stored_attributes = {"state": attributes_stored["state"], "muted": attributes_stored["muted"], "source": attributes_stored["source"]}
+    current_attributes = {"state": state, "muted": muted, "source": source}
+
+    attributes_to_check = ["state", "muted", "source"]
+    attributes_to_update = []
+
+    for attribute in attributes_to_check:
+        if current_attributes[attribute] != stored_attributes[attribute]:
+            attributes_to_update.append(attribute)
+        else:
+            _LOG.debug("Skip updating " + attribute + " attribute as the current value is the same as the one stored on the remote")
+
+    if attributes_to_update != []:
+        attributes_to_send = {}
+        if "state" in attributes_to_update:
+            attributes_to_send.update({ucapi.media_player.Attributes.STATE: state})
+        if "muted" in attributes_to_update:
+            attributes_to_send.update({ucapi.media_player.Attributes.MUTED: muted})
+        if "source" in attributes_to_update:
+            attributes_to_send.update({ucapi.media_player.Attributes.SOURCE: source})
+
+        try:
+            driver.api.configured_entities.update_attributes(id, attributes_to_send)
+            _LOG.info("Updated entity attributes " + str(attributes_to_update) + " for " + id)
+        except:
+            raise Exception("Error while updating attributes for entity id " + id)
+    else:
+        _LOG.info("No attributes to update")
     
 
 

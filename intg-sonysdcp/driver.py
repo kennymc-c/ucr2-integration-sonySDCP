@@ -42,7 +42,7 @@ async def startcheck():
             await media_player.add_mp(id, name)
 
             
-
+#TODO Check why the poller is not running although the task has been created
 async def attributes_poller(id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
@@ -184,10 +184,10 @@ async def main():
 
     if config.setup.get("setup_complete"):
         if config.POLLER_INTERVAL == 0:
-            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes puller task")
+            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
         else:
             loop.create_task(attributes_poller(config.setup.get("id"), config.POLLER_INTERVAL))
-            _LOG.debug("Created attributes puller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
+            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
 
 
