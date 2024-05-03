@@ -272,16 +272,6 @@ class Projector:
         self._send_command(action=ACTIONS["SET"], command=COMMANDS["PICTURE_MUTING"],
                            data=PICTURE_MUTING["ON"] if on else PICTURE_MUTING["OFF"])
         return True
-    
-    def set_aspect(self, aspect):
-        self._send_command(action=ACTIONS["SET"], command=COMMANDS["ASPECT_RATIO"],
-                           data=ASPECT_RATIOS[aspect])
-        return True
-    
-    def set_preset(self, preset):
-        self._send_command(action=ACTIONS["SET"], command=COMMANDS["CALIBRATION_PRESET"],
-                           data=CALIBRATION_PRESETS[preset])
-        return True
 
 
 if __name__ == '__main__':

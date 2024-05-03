@@ -15,11 +15,11 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 
 - Turn On/Off/Toggle
 - Mute/Unmute/Toggle
-    - Used for picture muting
+  - Used for picture muting
 - Cursor Up/Down/Left/Right/Enter
-    - The back command is enabled but no command has been mapped as the projector has no such function. Back is always included when using the Dpad feature to use the cursor/enter commands.
+  - The back command is also mapped to cursor left as there is no separate back command for the projector. Inside the setup menu cursor left has the same function as a typical back command.
 - Home
-    - Opens the setup menu. Used instead of the menu feature because of the hard mapped home button when opening the entity from a profile page
+  - Opens the setup menu. Used instead of the menu feature because of the hard mapped home button when opening the entity from a profile page
 - Source Select
   - HDMI 1, HDMI 2
 - Simple Commands
@@ -27,15 +27,30 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
     - Cinema Film 1, Cinema Film 2, Reference, TV, Photo, Game, Bright Cinema, Bright TV, User
   - Aspect Ratios*
     - Normal, Stretch**, V Stretch, Ratio Squeeze, Zoom 1:85, Zoom 2:35
+  - Motionfow*
+    - Off, Smoth High, Smoth Low, Impulse\*\*\*, Combination\***, True Cinema
+  - HDR*
+    - On, Off, Auto
+  - 2D/3D Display Select**
+    - 2D, 3D, Auto
+  - 3D Format**
+    - Simulated 3D, Side-by-Side, Over-Under
+  - Lamp Control*
+    - High, Low
+  - Input Lag Reduction*
+    - On, Off
+  - Menu Position
+    - Bottom Left, Center
   - Lens Control
     - Lens Shift Up/Down/Left/Right
     - Lens Focus Far/Near
     - Lens Zoom Large/Small
 
 \* _Only works if a video signal is present at the input_ \
-\** _May not work with all video signals_ \
+\** _May not work work with all video signals. Please refer to Sony's user manual_ \
+\*** _May not work on certain projector models that do not support this mode/feature. Please refer to Sony's user manual_
 
-_If a command can't be processed by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log_
+_If a command can't be processed or applied by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log_
 
 ### Supported attributes:
 
@@ -44,9 +59,10 @@ _If a command can't be processed by the projector this will result in a bad requ
 - Source
 - Source List (HDMI 1, HDMI 2)
 
+By default the integration checks the status of all attributes every 20 seconds. The interval can be changed in config.py. Set it to 0 to deactivate this function.
+
 ### Planned features:
 
-- Add remaining commands from protocol.py
 - Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
 - Auto discovery of the projector
 - Additional sensor entity to show the lamp time

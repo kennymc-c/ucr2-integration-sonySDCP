@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+## [0.4-beta] - 2024-05-03
+
 ### Added
+- Added new simple commands for Motionflow, HDR, 2D/3D conversion & format, lamp control, input lag reduction & menu position
 - Added attributes puller function that checks all available integration attributes of the projector every 20 seconds by default. The interval can be changed in config.py. Set to 0 to deactivate this function.
 - Added runtime storage to reduce config file access load
 - Added missing SDCP error response messages in protocol.py
-
+  
+### Changed
+- The CURSOR_LEFT command is mapped to back command on the remote as in most cases this has the same function as a typical back command
 
 ## [0.3-beta] - 2024-04-17
 

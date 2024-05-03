@@ -115,6 +115,31 @@ async def add_mp(id: str, name: str):
                 "MODE_ASPECT_RATIO_V_STRETCH",
                 "MODE_ASPECT_RATIO_SQUEEZE",
                 "MODE_ASPECT_RATIO_STRETCH",
+                "MODE_MOTIONFLOW_OFF",
+                "MODE_MOTIONFLOW_SMOTH_HIGH",
+                "MODE_MOTIONFLOW_SMOTH_LOW",
+                "MODE_MOTIONFLOW_IMPULSE",
+                "MODE_MOTIONFLOW_COMBINATION",
+                "MODE_MOTIONFLOW_TRUE_CINEMA",
+                "MODE_HDR_ON",
+                "MODE_HDR_OFF",
+                "MODE_HDR_AUTO",
+                "MODE_2D_3D_SELECT_AUTO",
+                "MODE_2D_3D_SELECT_3D",
+                "MODE_2D_3D_SELECT_2D",
+                "MODE_3D_FORMAT_SIMULATED_3D",
+                "MODE_3D_FORMAT_SIDE_BY_SIDE",
+                "MODE_3D_FORMAT_OVER_UNDER",
+                "LAMP_CONTROL_LOW",
+                "LAMP_CONTROL_HIGH",
+                "INPUT_LAG_REDUCTION_ON",
+                "INPUT_LAG_REDUCTION_OFF",
+                "MENU_POSITION_BOTTOM_LEFT",
+                "MENU_POSITION_CENTER",
+                "TEST_PATTERN_OFF",
+                "TEST_PATTERN_ON",
+                "STATUS_OFF",
+                "STATUS_ON",
                 "LENS_SHIFT_UP",
                 "LENS_SHIFT_DOWN",
                 "LENS_SHIFT_LEFT",
@@ -236,6 +261,14 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
                 return ucapi.StatusCodes.OK
             except Exception or ConnectionError as e:
                 return cmd_error(e)
+            
+        case \
+            ucapi.media_player.Commands.BACK:
+                try:
+                    projector._send_command(action=ACTIONS["SET"], command=COMMANDS_IR["CURSOR_LEFT"])
+                    return ucapi.StatusCodes.OK
+                except Exception or ConnectionError as e:
+                    return cmd_error(e)
 
         case ucapi.media_player.Commands.SELECT_SOURCE:
             source = params["source"]
@@ -267,31 +300,105 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
             "MODE_ASPECT_RATIO_SQUEEZE":
                 aspect = cmd_name.replace("MODE_ASPECT_RATIO_", "")
                 try:
-                    if projector.set_aspect(aspect):
-                        return ucapi.StatusCodes.OK
-                    else:
-                        return cmd_error()
+                    projector._send_command(action=ACTIONS["SET"], command=COMMANDS["ASPECT_RATIO"], data=ASPECT_RATIOS[aspect])
                 except Exception or ConnectionError as e:
                     return cmd_error(e)
+                return ucapi.StatusCodes.OK
                 
         case \
-                "MODE_PRESET_CINEMA_FILM_1" | \
-                "MODE_PRESET_CINEMA_FILM_2" | \
-                "MODE_PRESET_REF" | \
-                "MODE_PRESET_TV" | \
-                "MODE_PRESET_PHOTO" | \
-                "MODE_PRESET_GAME" | \
-                "MODE_PRESET_BRIGHT_CINEMA" | \
-                "MODE_PRESET_BRIGHT_TV" | \
-                "MODE_PRESET_USER":
-                try:
-                    preset = cmd_name.replace("MODE_PRESET_", "")
-                    if projector.set_preset(preset):
-                        return ucapi.StatusCodes.OK
-                    else:
-                        return cmd_error()
-                except Exception or ConnectionError as e:
-                    return cmd_error(e)
+            "MODE_PRESET_CINEMA_FILM_1" | \
+            "MODE_PRESET_CINEMA_FILM_2" | \
+            "MODE_PRESET_REF" | \
+            "MODE_PRESET_TV" | \
+            "MODE_PRESET_PHOTO" | \
+            "MODE_PRESET_GAME" | \
+            "MODE_PRESET_BRIGHT_CINEMA" | \
+            "MODE_PRESET_BRIGHT_TV" | \
+            "MODE_PRESET_USER":
+            preset = cmd_name.replace("MODE_PRESET_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["CALIBRATION_PRESET"], data=CALIBRATION_PRESETS[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+        
+        case \
+            "MODE_MOTIONFLOW_OFF" | \
+            "MODE_MOTIONFLOW_SMOTH_HIGH" | \
+            "MODE_MOTIONFLOW_SMOTH_LOW" | \
+            "MODE_MOTIONFLOW_IMPULSE" | \
+            "MODE_MOTIONFLOW_COMBINATION" | \
+            "MODE_MOTIONFLOW_TRUE_CINEMA":
+            preset = cmd_name.replace("MODE_MOTIONFLOW_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["MOTIONFLOW"], data=MOTIONFLOW[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+        
+        case \
+            "MODE_HDR_ON" | \
+            "MODE_HDR_OFF" | \
+            "MODE_HDR_AUTO":
+            preset = cmd_name.replace("MODE_HDR_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["HDR"], data=HDR[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+        
+        case \
+            "MODE_2D_3D_SELECT_AUTO" | \
+            "MODE_2D_3D_SELECT_3D" | \
+            "MODE_2D_3D_SELECT_2D":
+            preset = cmd_name.replace("MODE_2D_3D_SELECT_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["2D_3D_DISPLAY_SELECT"], data=TWO_D_THREE_D_SELECT[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+
+        case \
+            "MODE_3D_FORMAT_SIMULATED_3D" | \
+            "MODE_3D_FORMAT_SIDE_BY_SIDE" | \
+            "MODE_3D_FORMAT_OVER_UNDER":
+            preset = cmd_name.replace("MODE_3D_FORMAT_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["3D_FORMAT"], data=THREE_D_FORMATS[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+        
+        
+        case \
+            "LAMP_CONTROL_LOW" | \
+            "LAMP_CONTROL_HIGH":
+            preset = cmd_name.replace("LAMP_CONTROL_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["LAMP_CONTROL"], data=LAMP_CONTROL[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+
+        case \
+            "INPUT_LAG_REDUCTION_ON" | \
+            "INPUT_LAG_REDUCTION_OFF":
+            preset = cmd_name.replace("INPUT_LAG_REDUCTION_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["INPUT_LAG_REDUCTION"], data=INPUT_LAG_REDUCTION[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+        
+        case \
+            "MENU_POSITION_BOTTOM_LEFT" | \
+            "MENU_POSITION_CENTER":
+            preset = cmd_name.replace("MENU_POSITION_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["MENU_POSITION"], data=MENU_POSITIONS[preset])
+            except Exception or ConnectionError as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
 
         #TODO Beneficial for a DIY lens memory function: Lens shift up/down/left/right max + lens zoom large/small max simple commands to move lens faster than with slower remote command repeat function on the remote
 
