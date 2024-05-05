@@ -9,8 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+## [0.5-beta] - 2024-05-05
+
 ### Changed
 - Only update attribute if it differs from the value stored on the remote
+
+### Fixed
+- Fixed attributes poller not running due to a check against an API function that has not been implemented in the remote core (get_configured_entities)
 
 ## [0.4-beta] - 2024-05-03
 

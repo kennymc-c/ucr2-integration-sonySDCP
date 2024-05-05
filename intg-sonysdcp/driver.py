@@ -39,21 +39,24 @@ async def startcheck():
             _LOG.debug("Entity with id " + id + " is already in storage as available entity")
         else:
             _LOG.info("Add entity with id " + id + " and name " + name + " as available entity")
-            await media_player.add_mp(id, name)
 
-            
-#TODO Check why the poller is not running although the task has been created
+        await media_player.add_mp(id, name)
+
+
+
 async def attributes_poller(id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
             await asyncio.sleep(interval)
-            if api.configured_entities.contains(id):
-                if config.setup.get("standby"):
-                    continue
-                try:
-                    await media_player.update_attributes()
-                except Exception as e:
-                    _LOG.warning(e)
+            #TODO Uncomment when (get_)configured_entities are implemented in the remote core
+            #https://studio.asyncapi.com/?url=https://raw.githubusercontent.com/unfoldedcircle/core-api/main/integration-api/asyncapi.yaml#message-get_configured_entities
+            # if api.configured_entities.contains(id):
+            if config.setup.get("standby"):
+                continue
+            try:
+                await media_player.update_attributes(id)
+            except Exception as e:
+                _LOG.warning(e)
 
 
 
@@ -178,7 +181,7 @@ async def main():
     logging.getLogger("config").setLevel(level)
 
     _LOG.debug("Starting driver")
-    
+
     await setup.init()
     await startcheck()
 

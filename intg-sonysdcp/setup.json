@@ -1,7 +1,7 @@
 {
     "driver_id": "sonysdcp",
-    "version": "0.4",
-    "release_date": "2024-05-03",
+    "version": "0.5",
+    "release_date": "2024-05-05",
     "min_core_api": "0.24.3",
     "name": { 
         "en": "Sony Projector",

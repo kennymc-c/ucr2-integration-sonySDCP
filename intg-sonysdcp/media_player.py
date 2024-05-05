@@ -23,7 +23,8 @@ def get_attr_power(ip: str):
             return ucapi.media_player.States.ON
         else:
             return ucapi.media_player.States.OFF
-    except:
+    except Exception or ConnectionError as e:
+        _LOG.error(e)
         _LOG.warning("Can't get power status from projector. Set to Unknown")
         return ucapi.media_player.States.UNKNOWN
     
@@ -34,7 +35,8 @@ def get_attr_muted(ip: str):
             return True
         else:
             return False
-    except:
+    except Exception or ConnectionError as e:
+        _LOG.error(e)
         _LOG.warning("Can't get mute status from projector. Set to False")
         return False
     
@@ -42,16 +44,14 @@ def get_attr_source(ip: str):
     projector = pysdcp.Projector(ip)
     try:
         return projector.get_input()
-    except:
+    except Exception or ConnectionError as e:
+        _LOG.error(e)
         _LOG.warning("Can't get input from projector. Set to None")
         return None
     
 
 
-async def update_attributes(id: str = None):
-
-    if id == None:
-        id = config.setup.get("id")
+async def update_attributes(id: str):
 
     ip = config.setup.get("ip")
 
@@ -71,12 +71,16 @@ async def update_attributes(id: str = None):
 
     attributes_to_check = ["state", "muted", "source"]
     attributes_to_update = []
+    attributes_to_skip = []
 
     for attribute in attributes_to_check:
         if current_attributes[attribute] != stored_attributes[attribute]:
             attributes_to_update.append(attribute)
         else:
-            _LOG.debug("Skip updating " + attribute + " attribute as the current value is the same as the one stored on the remote")
+            attributes_to_skip.append(attribute)
+
+    if attributes_to_skip != []:
+        _LOG.debug("Entity attributes for " + str(attributes_to_skip) + " have not changed since the last update")
 
     if attributes_to_update != []:
         attributes_to_send = {}
@@ -93,7 +97,7 @@ async def update_attributes(id: str = None):
         except:
             raise Exception("Error while updating attributes for entity id " + id)
     else:
-        _LOG.info("No attributes to update")
+        _LOG.info("No entity attributes to update")
     
 
 
