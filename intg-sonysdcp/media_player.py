@@ -62,9 +62,17 @@ async def update_attributes(id: str):
     except Exception as e:
         raise Exception(e)
     
-    stored_states = await driver.api.configured_entities.get_states()
-    for entity in stored_states:
-        attributes_stored = entity["attributes"]
+    try:
+        #TODO Change to configured_entities once the core supports this feature
+        stored_states = await driver.api.available_entities.get_states()
+    except Exception as e:
+        raise Exception(e)
+    
+    if stored_states != []:
+        for entity in stored_states:
+            attributes_stored = entity["attributes"]
+    else:
+        raise Exception("Got empty states from remote. Please make sure to add the entity as a configured entity")
 
     stored_attributes = {"state": attributes_stored["state"], "muted": attributes_stored["muted"], "source": attributes_stored["source"]}
     current_attributes = {"state": state, "muted": muted, "source": source}
@@ -92,10 +100,16 @@ async def update_attributes(id: str):
             attributes_to_send.update({ucapi.media_player.Attributes.SOURCE: source})
 
         try:
-            driver.api.configured_entities.update_attributes(id, attributes_to_send)
-            _LOG.info("Updated entity attributes " + str(attributes_to_update) + " for " + id)
+            update_attributes = driver.api.configured_entities.update_attributes(id, attributes_to_send)
         except:
             raise Exception("Error while updating attributes for entity id " + id)
+        
+        if not update_attributes:
+            raise Exception("Entity " + id + " not found. Please make sure it's added as a configured entity on the remote")
+        else:
+            _LOG.info("Updated entity attributes " + str(attributes_to_update) + " for " + id)
+        
+ 
     else:
         _LOG.info("No entity attributes to update")
     
@@ -195,8 +209,6 @@ def mp_cmd_assigner(id: str, cmd_name: str, params: dict[str, Any] | None, ip: s
         else:
             _LOG.error(msg)
             return ucapi.StatusCodes.BAD_REQUEST
-
-    #TODO If all commands from protocol.py have been implemented into pySDCP as separate commands create a upstream pull request and remove pySDCP files when it has been merged
 
     match cmd_name:
 

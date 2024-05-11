@@ -64,8 +64,8 @@ By default the integration checks the status of all attributes every 20 seconds.
 ### Planned features:
 
 - Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
-- Auto discovery of the projector
 - Additional sensor entity to show the lamp time
+- Additional remote entity to automatically map all commands to buttons and the ui grid
 
 *Planned improvements are labeled with #TODO in the code*
 
@@ -101,7 +101,7 @@ Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJT
 
 #### Change SDAP Interval
 
-During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. This relatively long interval can lead to heartbeat timeouts to the remotes websocket integration api. The workaround is to shorten the interval to the minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
+During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
 
 ![advertisement](advertisement.png)
 

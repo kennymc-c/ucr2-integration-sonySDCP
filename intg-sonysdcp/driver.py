@@ -182,6 +182,9 @@ async def main():
 
     _LOG.debug("Starting driver")
 
+    #TODO Remove all pySDCP files and add pySDCP to requirements.txt when upstream PR has been merged:
+    #https://github.com/Galala7/pySDCP/pull/5
+
     await setup.init()
     await startcheck()
 

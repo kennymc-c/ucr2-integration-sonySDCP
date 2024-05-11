@@ -74,10 +74,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
     ip = msg.setup_data["ip"]
 
-    if ip == "":
-        _LOG.error("No IP address has been entered")
-        return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.NOT_FOUND)
-    else:
+    if ip != "":
         #Check if input is a valid ipv4 or ipv6 address
         try:
             ip_object = ipaddress.ip_address(ip)
@@ -85,7 +82,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             _LOG.error("The entered ip address \"" + ip + "\" is not valid")
             return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.NOT_FOUND)
 
-        _LOG.info("Chosen ip address: " + ip)
+        _LOG.info("Entered ip address: " + ip)
 
         #Check if SDCP/SDAP ports are open on the entered ip address
         _LOG.info("Check if SDCP Port " +  str(config.SDCP_PORT) + " is open")
@@ -96,83 +93,89 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
             return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)
         
         #TODO Modify port_check() to also work with UDP used for SDAP
-        # if not port_check(ip, config.SDAP_PORT):
-        #     _LOG.error("Timeout while connecting to SDAP port " + str(config.SDAP_PORT) + " on " + ip)
-        #     _LOG.info("Please check if you entered the correct ip of the projector and if SDAP advertisement is active and running on port " + str(config.SDAP_PORT))
-        #     return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)
-        
-        #Store ip in runtime and file storage
-        try:
-            config.setup.set("ip", ip)
-        except Exception as e:
-            _LOG.error(e)
-            return ucapi.SetupError()
-
-        #Get id and name from projector
-        
-        #TODO Run get_pjinfo as a coroutine in the background to avoid a websocket heartbeat pong timeout because of SDAP's 30 second default advertisement interval. Doesn't work...
-
-        # cloop = asyncio.get_running_loop()
-        # cloop.run_until_complete(get_pjinfo(ip))
-
-        #Backup solution without a coroutine:
-        #This requires the user to set the SDAP interval to a lower value than the default 30 seconds (e.g. the minimum value of 10 seconds) to not to interfere with the faster websockets heartbeat interval that will drop the connection before
-
-        try:
-            await get_pjinfo(ip)
-        except TimeoutError as t:
-            _LOG.info("Please check if SDAP advertisement is running on the projector")
-            _LOG.error(t)
-            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.TIMEOUT)
-        except Exception as e:
-            _LOG.error(e)
-            return ucapi.SetupError()
-        
-        
+    else:
+        _LOG.info("No ip address entered. Using auto discovery mode")
+    
+    
+    try:
+        #Run blocking function set_entity_data which may need to run up to 30 seconds asynchronously in a separate thread to be able to still respond to the websocket server heartbeat ping messages in the meantime and prevent a disconnect from the websocket server
+        await asyncio.gather(asyncio.to_thread(set_entity_data, ip), asyncio.sleep(1))
+    except TimeoutError as t:
+        _LOG.info("No response from the projector. Please check if SDAP advertisement is activated on the projector")
+        _LOG.error(t)
+        return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.TIMEOUT)
+    except Exception as e:
+        _LOG.error(e)
+        return ucapi.SetupError()
+    
+    try:
+        ip = config.setup.get("ip")
         id = config.setup.get("id")
         name = config.setup.get("name")
+    except Exception as e:
+        _LOG.error(e)
+        return ucapi.SetupError()
 
-        _LOG.info("Add media player entity with id " + id + " and name " + name)
-        await media_player.add_mp(id, name)
+    _LOG.info("Add media player entity with id " + id + " and name " + name)
+    await media_player.add_mp(id, name)
 
-        if config.POLLER_INTERVAL == 0:
-            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
-        else:
-            driver.loop.create_task(driver.attributes_poller(config.setup.get("id"), config.POLLER_INTERVAL))
-            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
+    if config.POLLER_INTERVAL == 0:
+        _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
+    else:
+        driver.loop.create_task(driver.attributes_poller(config.setup.get("id"), config.POLLER_INTERVAL))
+        _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
-        config.setup.set("setup_complete", True)
-        _LOG.info("Setup complete")
-        return ucapi.SetupComplete()
+    config.setup.set("setup_complete", True)
+    _LOG.info("Setup complete")
+    return ucapi.SetupComplete()
     
 
 
-async def get_pjinfo(ip: str):
-    _LOG.info("Query serial number and model name from projector (" + ip + ") via SDAP advertisement service")
-    _LOG.info("This may take up to 30 seconds depending on the interval setting of the projector")
+def set_entity_data(man_ip: str = None):
+    _LOG.info("Query data from projector via SDAP advertisement service")
+    _LOG.info("This may take up to 30 seconds depending on the advertisement interval setting of the projector")
 
-    try: 
-        pjinfo = pysdcp.Projector(ip).get_pjinfo()
+    try:
+        pjinfo = pysdcp.Projector(man_ip).get_pjinfo()
     except Exception as e:
         raise TimeoutError(e)
     
-    _LOG.debug("Got data from projector")
-    if "serial" and "model" in pjinfo:
-        if pjinfo["model"] or str(pjinfo["serial"]) != "":
-            id = pjinfo["model"] + "-" + str(pjinfo["serial"])
-            name= "Sony " + pjinfo["model"]
+    if pjinfo != "":
+        _LOG.info("Got data from projector")
+        if "serial" and "model" and "ip" in pjinfo:
+            if man_ip == "":
+                if pjinfo["ip"] != "":
+                    ip = pjinfo["ip"]
+                    
+                    _LOG.debug("Auto discovered IP: " + ip)
+                else:
+                    raise Exception("Got empty ip from projector")
+            else:
+                _LOG.debug("Manually entered IP: " + man_ip)
+            
+            if pjinfo["model"] or str(pjinfo["serial"]) != "":
+                id = pjinfo["model"] + "-" + str(pjinfo["serial"])
+                name= "Sony " + pjinfo["model"]
+
+                _LOG.debug("Generated ID and name from serial and model")
+                _LOG.debug("ID: " + id)
+                _LOG.debug("Name: " + name)
+            else:
+                raise Exception("Got empty model and serial from projector")
+
+            try:
+                if man_ip == "":
+                    config.setup.set("ip", ip)
+                else:
+                    config.setup.set("ip", man_ip)
+                config.setup.set("id", id)
+                config.setup.set("name", name)
+            except Exception as e:
+                raise Exception(e)
+            
+            return True
+
         else:
-            raise Exception("Got empty id and name")
-
-        _LOG.debug("Generated ID and name from serial and model")
-        _LOG.debug("ID: " + id)
-        _LOG.debug("Name: " + name)
-
-        try:
-            config.setup.set("id", id)
-            config.setup.set("name", name)
-        except Exception as e:
-            raise Exception(e)
-
+            raise Exception("Unknown values from projector: " + pjinfo)
     else:
-        raise Exception("Unknown values from projector: " + pjinfo)
+        raise Exception("Got no data from projector")

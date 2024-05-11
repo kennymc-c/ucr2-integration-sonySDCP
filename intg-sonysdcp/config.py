@@ -5,13 +5,13 @@ import logging
 _LOG = logging.getLogger(__name__)
 
 CFG_FILENAME = "config.json"
+#TODO Add entity features, attributes and option/simple commands
+
 SDCP_PORT = 53484 #Currently only used for port check during setup
 SDAP_PORT = 53862 #Currently only used for port check during setup
 POLLER_INTERVAL = 20 #Set to 0 to deactivate
 
 #TODO Integrate SDCP and SDAP port and PJTalk community as variables into the command assigner to replace the pySDCP variables
-
-
 
 class setup:
     __conf = {
@@ -56,8 +56,8 @@ class setup:
 
                 #Create config file first if it doesn't exists yet
                 else:
-                    #Skip storing setup_complete if no ip has ben set before
-                    if key != "setup_complete" and setup.__conf["ip"] != "":
+                    #Skip storing setup_complete if no config files exists
+                    if key != "setup_complete":
                         try:
                             with open(CFG_FILENAME, "w") as f:
                                 json.dump(jsondata, f)

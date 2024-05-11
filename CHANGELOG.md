@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+## [0.6-beta] - 2024-05-11
+
+### Added
+- Added IP auto discovery. Just leave the ip text field empty in the setup process
+
+### Changed
+- No need to change the default SDAP advertisement interval anymore on the projector as the query function is now running asynchronously in a separate thread
+  
+### Fixed
+- Replaced a variable reference log warning message with a clearer error description. This message appears if attributes of an entity should be updated that the remote has not yet subscribed to, e.g. shortly after the integration setup has been completed or if the integration configuration has been deleted just on the remote side.
+
 ## [0.5-beta] - 2024-05-05
 
 ### Changed
