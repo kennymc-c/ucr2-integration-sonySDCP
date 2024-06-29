@@ -3,11 +3,9 @@
 import asyncio
 import logging
 
-import ucapi
-import json
-import os
 import ipaddress
 import socket
+import ucapi
 
 import pysdcp
 
@@ -69,15 +67,16 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     :return: the setup action on how to continue
     """
 
-    # if msg.reconfigure:
-    #     _LOG.info("Ignoring driver reconfiguration request")
+    if msg.reconfigure and config.setup.get("setup_complete"):
+        _LOG.info("Starting reconfiguration")
+        config.setup.set("setup_reconfigure", True)
 
     ip = msg.setup_data["ip"]
 
     if ip != "":
         #Check if input is a valid ipv4 or ipv6 address
         try:
-            ip_object = ipaddress.ip_address(ip)
+            ipaddress.ip_address(ip)
         except ValueError:
             _LOG.error("The entered ip address \"" + ip + "\" is not valid")
             return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.NOT_FOUND)
@@ -109,15 +108,14 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         return ucapi.SetupError()
     
     try:
-        ip = config.setup.get("ip")
-        id = config.setup.get("id")
-        name = config.setup.get("name")
+        entity_id = config.setup.get("id")
+        entity_name = config.setup.get("name")
     except Exception as e:
         _LOG.error(e)
         return ucapi.SetupError()
 
-    _LOG.info("Add media player entity with id " + id + " and name " + name)
-    await media_player.add_mp(id, name)
+    _LOG.info("Add media player entity with id " + entity_id + " and name " + entity_name)
+    await media_player.add_mp(entity_id, entity_name)
 
     if config.POLLER_INTERVAL == 0:
         _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
@@ -179,3 +177,4 @@ def set_entity_data(man_ip: str = None):
             raise Exception("Unknown values from projector: " + pjinfo)
     else:
         raise Exception("Got no data from projector")
+    

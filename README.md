@@ -1,4 +1,4 @@
-# Sony Projector Integration for Unfolded Circle Remote Two
+# Sony Projector Integration for Unfolded Circle Remote Two and Remote 3
 
 ## ⚠️ WARNING ⚠️
 
@@ -6,7 +6,7 @@
 
 ##
 
-Integration for [Unfolded Circle Remote Two](https://unfoldedcircle.com) to control Sony projectors that support the SDCP/PJTalk protocol.
+Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to control Sony projectors that support the SDCP/PJ Talk protocol.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
@@ -66,6 +66,7 @@ By default the integration checks the status of all attributes every 20 seconds.
 - Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
 - Additional sensor entity to show the lamp time
 - Additional remote entity to automatically map all commands to buttons and the ui grid
+- Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
 
 *Planned improvements are labeled with #TODO in the code*
 
