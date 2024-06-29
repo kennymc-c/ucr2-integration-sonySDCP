@@ -53,7 +53,7 @@ jobs:
             bash -c \
             "cd /workspace && \
               python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onefile --name intg-appletv --collect-all zeroconf intg-sonysdcp/driver.py"
+              pyinstaller --clean --onefile --name intg-sonysdcp --collect-all zeroconf intg-sonysdcp/driver.py"
 
       - name: Add version
         run: |
