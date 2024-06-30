@@ -37,7 +37,7 @@ def port_check(ip, port):
 
 async def init():
     """Initiates the driver advertisement and first setup page to the remote using setup.json"""
-    await driver.api.init("setup.json", driver_setup_handler)
+    await driver.api.init("driver.json", driver_setup_handler)
 
 
 
