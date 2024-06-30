@@ -62,7 +62,7 @@ jobs:
       - name: Prepare artifacts
         shell: bash
         run: |
-          cp dist/driver.json artifacts/
+          cp dist/intg-sonysdcp/driver.json artifacts/
           cp dist/intg-sonysdcp artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
