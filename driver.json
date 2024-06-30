@@ -1,6 +1,6 @@
 {
     "driver_id": "sonysdcp-test",
-    "version": "0.6",
+    "version": "0.7.0-buildtest",
     "release_date": "2024-05-11",
     "min_core_api": "0.24.3",
     "name": { 

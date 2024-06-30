@@ -107,17 +107,11 @@ jobs:
         run: |
           echo "TIMESTAMP=$(date +"%Y%m%d_%H%M%S")" >> $GITHUB_ENV
 
-      # Add timestamp to development builds
-      - name: Create GitHub development build archives
-        if: "!contains(github.ref, 'tags/v')"
-        run: |
-          # append timestamp
-          for filename in *.tar.gz; do mv $filename "$(basename $filename .tar.gz)-${{ env.TIMESTAMP }}.tar.gz"; done;
-          for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
-
       - name: Create GitHub release archives
         if: "contains(github.ref, 'tags/v')"
         run: |
+          # append timestamp
+          for filename in *.tar.gz; do mv $filename "$(basename $filename .tar.gz)-${{ env.TIMESTAMP }}.tar.gz"; done;
           for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
 
       - name: Create Release
