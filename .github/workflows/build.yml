@@ -32,7 +32,7 @@ jobs:
       - name: Verify driver.json version for release build
         if: contains(github.ref, 'tags/v')
         run: |
-          DRIVER_VERSION="v$(jq .version -r intg-sonysdcp/driver.json)"
+          DRIVER_VERSION="v$(jq .version -r driver.json)"
           if [ "${{ env.VERSION }}" != "$DRIVER_VERSION" ]; then
             echo "Version in driver.json ($DRIVER_VERSION) doesn't match git version tag (${{ env.VERSION }})!"
             exit 1
