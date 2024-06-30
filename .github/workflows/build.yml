@@ -62,10 +62,8 @@ jobs:
       - name: Prepare artifacts
         shell: bash
         run: |
-          ls /workspace -lah
-          ls . -lah
           cp dist/intg-sonysdcp artifacts/
-          # cp /workspace/driver.json artifacts/
+          cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
       - name: Create upload artifact

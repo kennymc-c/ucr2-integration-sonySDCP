@@ -1,3 +1,5 @@
+"""This module contains the media player entity definition class and the Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage which includes storing them in a json config file and as well as load() them from this file"""
+
 import json
 import os
 import logging
@@ -8,6 +10,7 @@ _LOG = logging.getLogger(__name__)
 #TODO Integrate SDCP and SDAP port and PJTalk community as variables into the command assigner to replace the pySDCP default values
 #TODO Make poller interval, SDCP & SDAP ports and PJTalk community user configurable in an advanced setup option
 
+#Fixed variables
 SDCP_PORT = 53484 #Currently only used for port check during setup
 SDAP_PORT = 53862 #Currently only used for port check during setup
 POLLER_INTERVAL = 20 #Use to 0 to deactivate #TODO Deactivate by default once integrations can be uploaded to the remote to reduce power consumption #TODO Make configurable in setup flow
@@ -15,7 +18,8 @@ CFG_FILENAME = "config.json"
 
 
 
-class mp_def:
+class MpDef:
+    """Media player entity definition class that includes the device class, features, attributes and options"""
     device_class = ucapi.media_player.DeviceClasses.TV
     features = [
         ucapi.media_player.Features.ON_OFF,
@@ -83,8 +87,9 @@ class mp_def:
         }
 
 
+class Setup:
+    """Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage which includes storing them in a json config file and as well as load() them from this file"""
 
-class setup:
     __conf = {
     "ip": "",
     "id": "",
@@ -99,23 +104,25 @@ class setup:
 
     @staticmethod
     def get(value):
-        if setup.__conf[value] != "":
-            return setup.__conf[value]
+        """Get the key from the specified value in __conf"""
+        if Setup.__conf[value] != "":
+            return Setup.__conf[value]
         else:
             _LOG.error("Got empty value from runtime storage")
 
     @staticmethod
     def set(key, value):
-
-        if key in setup.__setters:
-            if setup.__conf["setup_reconfigure"] == True and key == "setup_complete":
+        """Set and store a value for the specified key into the runtime storage and config file.
+        Storing setup_complete flag during reconfiguration will be ignored"""
+        if key in Setup.__setters:
+            if Setup.__conf["setup_reconfigure"] and key == "setup_complete":
                 _LOG.debug("Ignore setting and storing setup_complete flag during reconfiguration")
             else:
-                setup.__conf[key] = value
+                Setup.__conf[key] = value
                 _LOG.debug("Stored " + key + ": " + str(value) + " into runtime storage")
-            
+
                 #Store key/value pair in config file
-                if key in setup.__storers:
+                if key in Setup.__storers:
                     jsondata = {key: value}
                     if os.path.isfile(CFG_FILENAME):
                         try:
@@ -126,8 +133,8 @@ class setup:
                                 f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true)
                                 json.dump(l, f)
                                 _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
-                        except:
-                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME)
+                        except Exception as e:
+                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
 
                     #Create config file first if it doesn't exists yet
                     else:
@@ -138,9 +145,9 @@ class setup:
                                     json.dump(jsondata, f)
                                 _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
                             except OSError as o:
-                                raise Exception(o)
-                            except:
-                                raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME)
+                                raise Exception(o) from o
+                            except Exception as e:
+                                raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
                 else:
                     _LOG.debug(key + " not found in __storers because it should not be stored in the config file")
         else:
@@ -148,31 +155,32 @@ class setup:
 
     @staticmethod
     def load():
+        """Load all variables from the config json file into the runtime storage"""
         if os.path.isfile(CFG_FILENAME):
 
             try:
                 with open(CFG_FILENAME, "r", encoding="utf-8") as f:
                     configfile = json.load(f)
-            except:
-                raise OSError("Error while reading " + CFG_FILENAME)
+            except Exception as e:
+                raise OSError("Error while reading " + CFG_FILENAME) from e
             if configfile == "":
                 raise OSError("Error in " + CFG_FILENAME + ". No data")
-            
-            setup.__conf["setup_complete"] = configfile["setup_complete"]
+
+            Setup.__conf["setup_complete"] = configfile["setup_complete"]
             _LOG.debug("Loaded setup_complete: " + str(configfile["setup_complete"]) + " into runtime storage from " + CFG_FILENAME)
 
-            if not setup.__conf["setup_complete"]:
+            if not Setup.__conf["setup_complete"]:
                 _LOG.warning("The setup was not completed the last time. Please restart the setup process")
             else:
                 if "ip" in configfile:
-                    setup.__conf["ip"] = configfile["ip"]
+                    Setup.__conf["ip"] = configfile["ip"]
                     _LOG.debug("Loaded ip into runtime storage from " + CFG_FILENAME)
                 else:
                     _LOG.debug("Skip loading ip as it's not yet stored in the config file")
 
                 if "id" and "name" in configfile:
-                    setup.__conf["id"] = configfile["id"]
-                    setup.__conf["name"] = configfile["name"]
+                    Setup.__conf["id"] = configfile["id"]
+                    Setup.__conf["name"] = configfile["name"]
                     _LOG.debug("Loaded id and name into runtime storage from " + CFG_FILENAME)
                 else:
                     _LOG.debug("Skip loading id and name as there are not yet stored in the config file")

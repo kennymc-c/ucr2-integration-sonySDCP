@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Module that includes functions to add a pre-defined media player entity, logics for a attributes polling function and the media player command handler"""
+
 import logging
 from typing import Any
 
@@ -15,14 +17,15 @@ _LOG = logging.getLogger(__name__)
 
 
 async def add_mp(ent_id: str, name: str):
+    """Function to add a media player entity with the config.MpDef class definition"""
 
     definition = ucapi.MediaPlayer(
         ent_id,
         name,
-        features=config.mp_def.features,
-        attributes=config.mp_def.attributes,
-        device_class=config.mp_def.device_class,
-        options=config.mp_def.options,
+        features=config.MpDef.features,
+        attributes=config.MpDef.attributes,
+        device_class=config.MpDef.device_class,
+        options=config.MpDef.options,
         cmd_handler=driver.mp_cmd_handler
     )
 
@@ -35,9 +38,10 @@ async def add_mp(ent_id: str, name: str):
 
 
 def get_attr_power(ip: str):
+    """Get the current power state from the projector and return the corresponding ucapi power state attribute"""
     projector = pysdcp.Projector(ip)
     try:
-        if projector.get_power() == True:
+        if projector.get_power():
             return ucapi.media_player.States.ON
         else:
             return ucapi.media_player.States.OFF
@@ -45,11 +49,12 @@ def get_attr_power(ip: str):
         _LOG.error(e)
         _LOG.warning("Can't get power status from projector. Set to Unknown")
         return ucapi.media_player.States.UNKNOWN
-    
+
 def get_attr_muted(ip: str):
+    """Get the current muted state from the projector and return either False or True"""
     projector = pysdcp.Projector(ip)
     try:
-        if projector.get_muting() == True:
+        if projector.get_muting():
             return True
         else:
             return False
@@ -57,8 +62,9 @@ def get_attr_muted(ip: str):
         _LOG.error(e)
         _LOG.warning("Can't get mute status from projector. Set to False")
         return False
-    
+
 def get_attr_source(ip: str):
+    """Get the current input source from the projector and return it as a string"""
     projector = pysdcp.Projector(ip)
     try:
         return projector.get_input()
@@ -66,26 +72,27 @@ def get_attr_source(ip: str):
         _LOG.error(e)
         _LOG.warning("Can't get input from projector. Set to None")
         return None
-    
+
 
 
 async def update_attributes(entity_id: str):
+    """Retrieve input source, power state and muted state from the projector, compare them with the known state on the remote and update them if necessary"""
 
-    ip = config.setup.get("ip")
+    ip = config.Setup.get("ip")
 
     try:
         state = get_attr_power(ip)
         muted = get_attr_muted(ip)
         source = get_attr_source(ip)
     except Exception as e:
-        raise Exception(e)
-    
+        raise Exception(e) from e
+
     try:
         #TODO #WAIT Change to configured_entities once the core supports this feature
         stored_states = await driver.api.available_entities.get_states()
     except Exception as e:
-        raise Exception(e)
-    
+        raise Exception(e) from e
+
     if stored_states != []:
         for entity in stored_states:
             attributes_stored = entity["attributes"]
@@ -105,10 +112,10 @@ async def update_attributes(entity_id: str):
         else:
             attributes_to_skip.append(attribute)
 
-    if attributes_to_skip != []:
+    if not attributes_to_skip:
         _LOG.debug("Entity attributes for " + str(attributes_to_skip) + " have not changed since the last update")
 
-    if attributes_to_update != []:
+    if not attributes_to_update:
         attributes_to_send = {}
         if "state" in attributes_to_update:
             attributes_to_send.update({ucapi.media_player.Attributes.STATE: state})
@@ -119,22 +126,23 @@ async def update_attributes(entity_id: str):
 
         try:
             update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
-        except:
-            raise Exception("Error while updating attributes for entity id " + entity_id)
-        
+        except Exception as e:
+            raise Exception("Error while updating attributes for entity id " + entity_id) from e
+
         if not update_attributes:
             raise Exception("Entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
         else:
             _LOG.info("Updated entity attributes " + str(attributes_to_update) + " for " + entity_id)
-        
- 
+
+
     else:
         _LOG.info("No entity attributes to update")
-    
+
 
 
 def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None, ip: str):
-    
+    """Assign a SDCP command to the passed entity id, command name and parameter"""
+
     projector = pysdcp.Projector(ip)
 
     def cmd_error(msg: str = None):
@@ -156,7 +164,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                     return cmd_error()
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
-            
+
         case ucapi.media_player.Commands.OFF:
             try:
                 if projector.set_power(False):
@@ -169,13 +177,13 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
 
         case ucapi.media_player.Commands.TOGGLE:
             try:
-                if projector.get_power() == True:
+                if projector.get_power():
                     if projector.set_power(False):
                         driver.api.configured_entities.update_attributes(entity_id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF})
                         return ucapi.StatusCodes.OK
                     else:
                         return cmd_error()
-                elif projector.get_power() == False:
+                elif not projector.get_power():
                     if projector.set_power(True):
                         driver.api.configured_entities.update_attributes(entity_id, {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON})
                         return ucapi.StatusCodes.OK
@@ -188,13 +196,13 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
 
         case ucapi.media_player.Commands.MUTE_TOGGLE:
             try:
-                if projector.get_muting() == True:
+                if projector.get_muting():
                     if projector.set_muting(False):
                         driver.api.configured_entities.update_attributes(entity_id, {ucapi.media_player.Attributes.MUTED: False})
                         return ucapi.StatusCodes.OK
                     else:
                         return cmd_error()
-                elif projector.get_muting() == False:
+                elif not projector.get_muting():
                     if projector.set_muting(True):
                         driver.api.configured_entities.update_attributes(entity_id, {ucapi.media_player.Attributes.MUTED: True})
                         return ucapi.StatusCodes.OK
@@ -214,7 +222,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                     return cmd_error()
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
-        
+
         case ucapi.media_player.Commands.UNMUTE:
             try:
                 if projector.set_muting(False):
@@ -224,14 +232,14 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
                     return cmd_error()
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
-        
+
         case ucapi.media_player.Commands.HOME:
             try:
                 projector._send_command(action=ACTIONS["SET"], command=COMMANDS_IR["MENU"])
                 return ucapi.StatusCodes.OK
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
-            
+
         case \
             ucapi.media_player.Commands.BACK:
             try:
@@ -268,13 +276,13 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             "MODE_ASPECT_RATIO_ZOOM_2_35" | \
             "MODE_ASPECT_RATIO_STRETCH" | \
             "MODE_ASPECT_RATIO_SQUEEZE":
-                aspect = cmd_name.replace("MODE_ASPECT_RATIO_", "")
-                try:
-                    projector._send_command(action=ACTIONS["SET"], command=COMMANDS["ASPECT_RATIO"], data=ASPECT_RATIOS[aspect])
-                except (Exception, ConnectionError) as e:
-                    return cmd_error(e)
-                return ucapi.StatusCodes.OK
-                
+            aspect = cmd_name.replace("MODE_ASPECT_RATIO_", "")
+            try:
+                projector._send_command(action=ACTIONS["SET"], command=COMMANDS["ASPECT_RATIO"], data=ASPECT_RATIOS[aspect])
+            except (Exception, ConnectionError) as e:
+                return cmd_error(e)
+            return ucapi.StatusCodes.OK
+
         case \
             "MODE_PRESET_CINEMA_FILM_1" | \
             "MODE_PRESET_CINEMA_FILM_2" | \
@@ -291,7 +299,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-        
+
         case \
             "MODE_MOTIONFLOW_OFF" | \
             "MODE_MOTIONFLOW_SMOTH_HIGH" | \
@@ -305,7 +313,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-        
+
         case \
             "MODE_HDR_ON" | \
             "MODE_HDR_OFF" | \
@@ -316,7 +324,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-        
+
         case \
             "MODE_2D_3D_SELECT_AUTO" | \
             "MODE_2D_3D_SELECT_3D" | \
@@ -338,8 +346,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-        
-        
+
         case \
             "LAMP_CONTROL_LOW" | \
             "LAMP_CONTROL_HIGH":
@@ -359,7 +366,7 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-        
+
         case \
             "MENU_POSITION_BOTTOM_LEFT" | \
             "MENU_POSITION_CENTER":
