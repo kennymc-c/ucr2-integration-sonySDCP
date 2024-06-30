@@ -5,8 +5,6 @@ name: "Build & Release"
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     tags:
       - v[0-9]+.[0-9]+.[0-9]+*
 
@@ -64,6 +62,7 @@ jobs:
       - name: Prepare artifacts
         shell: bash
         run: |
+          cp dist/driver.json artifacts/
           cp dist/intg-sonysdcp artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
@@ -115,18 +114,6 @@ jobs:
           for filename in *.tar.gz; do mv $filename "$(basename $filename .tar.gz)-${{ env.TIMESTAMP }}.tar.gz"; done;
           for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
 
-      - name: Create Pre-Release
-        uses: "marvinpinto/action-automatic-releases@latest"
-        if: "!contains(github.ref, 'tags/v')"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
-          files: |
-            *.tar.gz
-            ${{ env.HASH_FILENAME }}
-
       - name: Create GitHub release archives
         if: "contains(github.ref, 'tags/v')"
         run: |
@@ -138,6 +125,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+          draft: true
           files: |
             *.tar.gz
             ${{ env.HASH_FILENAME }}
