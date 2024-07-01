@@ -105,19 +105,13 @@ jobs:
             fi
           done;
 
-      # Use a common timestamp for all matrix build artifacts
-      - name: Get timestamp
-        run: |
-          echo "TIMESTAMP=$(date +"%Y%m%d_%H%M%S")" >> $GITHUB_ENV
-
       - name: Create GitHub release archives
         # if: "contains(github.ref, 'tags/v')"
         run: |
-          # append timestamp
-          for filename in *.tar.gz; do mv $filename "$(basename $filename .tar.gz)-${{ env.TIMESTAMP }}.tar.gz"; done;
           for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
 
       - name: Create release draft
+        #Check if project settings -> actions -> general / Workflow permissions is set to Read and write permissions
         uses: ncipollo/release-action@v1
         # if: "contains(github.ref, 'tags/v')"
         with:
@@ -125,7 +119,7 @@ jobs:
           draft: true
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
-          tag: ${{ env.VERSION }}-testbuild
+          tag: "v${{ env.VERSION }}"
 
       #- name: Create Release
         #uses: "marvinpinto/action-automatic-releases@latest"
