@@ -118,7 +118,7 @@ jobs:
           for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
 
       - name: Create release draft
-      - uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@v1
         # if: "contains(github.ref, 'tags/v')"
         with:
           artifacts: "*.tar.gz,${{ env.HASH_FILENAME }}"
@@ -127,6 +127,7 @@ jobs:
           artifactErrorsFailBuild: true
           tag: ${{ env.VERSION }}-testbuild
 
+      #- name: Create Release
         #uses: "marvinpinto/action-automatic-releases@latest"
         #if: "contains(github.ref, 'tags/v')"
         #with:
