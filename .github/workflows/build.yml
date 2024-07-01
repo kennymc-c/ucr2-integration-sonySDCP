@@ -1,14 +1,9 @@
-# GitHub Action to build a self-contained binary of the Sony SDCP Python driver and creating a release draft with the binary and a hash file
+# Manual triggered GitHub action to build a self-contained binary of the Sony SDCP Python driver and attach it to a release draft including a hash file
 ---
 name: "Build & Draft Release"
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - dev
-    tags:
-      - v[0-9]+.[0-9]+.[0-9]+*
 
 env:
   INTG_NAME: sonysdcp
@@ -28,19 +23,9 @@ jobs:
           # Only for testing. Delete when merging with main branch
           ref: dev 
 
-      - name: Fetch all tags to determine version
+      - name: Get version from driver.json
         run: |
-          git fetch origin +refs/tags/*:refs/tags/*
-          echo "VERSION=$(git describe --match "v[0-9]*" --tags HEAD --always)" >> $GITHUB_ENV
-
-      - name: Verify driver.json version for release build
-        if: contains(github.ref, 'tags/v')
-        run: |
-          DRIVER_VERSION="v$(jq .version -r driver.json)"
-          if [ "${{ env.VERSION }}" != "$DRIVER_VERSION" ]; then
-            echo "Version in driver.json ($DRIVER_VERSION) doesn't match git version tag (${{ env.VERSION }})!"
-            exit 1
-          fi
+          echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -70,7 +55,7 @@ jobs:
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
-      - name: Create upload artifact
+      - name: Create upload artifact archive
         shell: bash
         run: | 
           tar czvf ${{ env.ARTIFACT_NAME }}.tar.gz -C ${GITHUB_WORKSPACE}/artifacts .
@@ -86,9 +71,10 @@ jobs:
             
   release:
     name: Create Release
-    # if: github.ref == 'refs/heads/main' || contains(github.ref, 'tags/v')
     runs-on: ubuntu-latest
     needs: [build]
+    permissions:
+      contents: write
 
     steps:
       - name: Download build artifacts
@@ -105,29 +91,15 @@ jobs:
             fi
           done;
 
-      - name: Create GitHub release archives
-        # if: "contains(github.ref, 'tags/v')"
+      - name: Create hash file
         run: |
           for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
 
       - name: Create release draft
-        #Check if project settings -> actions -> general / Workflow permissions is set to Read and write permissions
         uses: ncipollo/release-action@v1
-        # if: "contains(github.ref, 'tags/v')"
         with:
           artifacts: "*.tar.gz,${{ env.HASH_FILENAME }}"
           draft: true
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
-          tag: "v${{ env.VERSION }}"
-
-      #- name: Create Release
-        #uses: "marvinpinto/action-automatic-releases@latest"
-        #if: "contains(github.ref, 'tags/v')"
-        #with:
-        #  repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        #  prerelease: false
-        #  draft: true
-        # files: |
-        #    *.tar.gz
-        #    ${{ env.HASH_FILENAME }}
+          tag: v${{ env.VERSION }}
