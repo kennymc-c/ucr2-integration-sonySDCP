@@ -26,7 +26,7 @@ api = ucapi.IntegrationAPI(loop)
 
 async def startcheck():
     """
-    Called at the start of the integration driver to load the config file into the runtime storage and add a media player entity
+    Called at the start of the integration driver to load the config file into the runtime storage, add a media player entity and start the attributes poller task
     """
     try:
         config.Setup.load()
@@ -45,6 +45,13 @@ async def startcheck():
             _LOG.info("Add entity with id " + entity_id + " and name " + entity_name + " as available entity")
 
         await media_player.add_mp(entity_id, entity_name)
+
+        #Create attributes poller task
+        if config.POLLER_INTERVAL == 0:
+            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
+        else:
+            loop.create_task(attributes_poller(entity_id, config.POLLER_INTERVAL))
+            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
 
 
@@ -82,7 +89,11 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
 
-    ip = config.Setup.get("ip")
+    try:
+        ip = config.Setup.get("ip")
+    except ValueError as v:
+        _LOG.error(v)
+        return ucapi.StatusCodes.SERVER_ERROR
 
     return media_player.mp_cmd_assigner(entity.id, cmd_id, _params, ip)
 
@@ -192,13 +203,6 @@ async def main():
 
     await setup.init()
     await startcheck()
-
-    if config.Setup.get("setup_complete"):
-        if config.POLLER_INTERVAL == 0:
-            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
-        else:
-            loop.create_task(attributes_poller(config.Setup.get("id"), config.POLLER_INTERVAL))
-            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
 
 

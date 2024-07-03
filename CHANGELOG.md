@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+### Breaking changes
+- The configuration json file is now created in the root of the repository. Existing users have to move the config.json file from the intg-sonysdcp directory
+- The working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has already.
+- In preparation to the upcoming custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository to adapt to the official UC integrations
+
+### Added
+- Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
+
+### Changed
+- Deactivated the attributes poller task by default. The reason for this is to reduce battery consumption when running the integration on the remote. Also this function is just needed if you control the projector alternating with a second device. By running as an external integration this function can still be activated by adjusting POLLER_INTERVAL in config.py. In a future release this setting may also be adjustable in the integration setup.
+- Corrected the semantic version scheme in driver.json (x.x to x.x.x)
+
 ## [0.6-beta] - 2024-05-11
 
 ### Added

@@ -78,7 +78,10 @@ def get_attr_source(ip: str):
 async def update_attributes(entity_id: str):
     """Retrieve input source, power state and muted state from the projector, compare them with the known state on the remote and update them if necessary"""
 
-    ip = config.Setup.get("ip")
+    try:
+        ip = config.Setup.get("ip")
+    except ValueError as v:
+        raise Exception(v) from v
 
     try:
         state = get_attr_power(ip)
@@ -125,18 +128,17 @@ async def update_attributes(entity_id: str):
             attributes_to_send.update({ucapi.media_player.Attributes.SOURCE: source})
 
         try:
-            update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
+            api_update_attributes = driver.api.configured_entities.update_attributes(entity_id, attributes_to_send)
         except Exception as e:
             raise Exception("Error while updating attributes for entity id " + entity_id) from e
 
-        if not update_attributes:
+        if not api_update_attributes:
             raise Exception("Entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
         else:
-            _LOG.info("Updated entity attributes " + str(attributes_to_update) + " for " + entity_id)
-
+            _LOG.info("Updated entity attribute(s) " + str(attributes_to_update) + " for " + entity_id)
 
     else:
-        _LOG.info("No entity attributes to update")
+        _LOG.debug("No entity attributes to update")
 
 
 
@@ -376,8 +378,6 @@ def mp_cmd_assigner(entity_id: str, cmd_name: str, params: dict[str, Any] | None
             except (Exception, ConnectionError) as e:
                 return cmd_error(e)
             return ucapi.StatusCodes.OK
-
-        #TODO Beneficial for a DIY lens memory function: Lens shift up/down/left/right max + lens zoom large/small max simple commands to move lens faster than with slower remote command repeat function on the remote
 
         case \
             ucapi.media_player.Commands.CURSOR_ENTER | \

@@ -1,4 +1,4 @@
-"""This module contains the media player entity definition class and the Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage which includes storing them in a json config file and as well as load() them from this file"""
+"""This module contains the media player entity definition class and the Setup class which includes all fixed and customizable variables"""
 
 import json
 import os
@@ -13,7 +13,9 @@ _LOG = logging.getLogger(__name__)
 #Fixed variables
 SDCP_PORT = 53484 #Currently only used for port check during setup
 SDAP_PORT = 53862 #Currently only used for port check during setup
-POLLER_INTERVAL = 20 #Use to 0 to deactivate #TODO Deactivate by default once integrations can be uploaded to the remote to reduce power consumption #TODO Make configurable in setup flow
+#TODO Deactivate by default once integrations can be uploaded to the remote to reduce power consumption
+#TODO Make configurable in setup flow
+POLLER_INTERVAL = 0 #Use to 0 to deactivate
 CFG_FILENAME = "config.json"
 
 
@@ -87,8 +89,10 @@ class MpDef:
         }
 
 
+
 class Setup:
-    """Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage which includes storing them in a json config file and as well as load() them from this file"""
+    """Setup class which includes all fixed and customizable variables including functions to set() and get() them from a runtime storage
+    which includes storing them in a json config file and as well as load() them from this file"""
 
     __conf = {
     "ip": "",
@@ -99,16 +103,15 @@ class Setup:
     "standby": False
     }
     __setters = ["ip", "id", "name", "setup_complete", "setup_reconfigure", "standby"]
-    __storers = ["setup_complete", "ip", "id", "name"] #Skip runtime only related values in config file
+    __storers = ["setup_complete", "ip", "id", "name"] #Skip runtime only related keys in config file
 
 
     @staticmethod
-    def get(value):
-        """Get the key from the specified value in __conf"""
-        if Setup.__conf[value] != "":
-            return Setup.__conf[value]
-        else:
-            _LOG.error("Got empty value from runtime storage")
+    def get(key):
+        """Get the value from the specified key in __conf"""
+        if Setup.__conf[key] == "":
+            raise ValueError("Got empty value for key " + key + " from runtime storage")
+        return Setup.__conf[key]
 
     @staticmethod
     def set(key, value):
@@ -133,6 +136,8 @@ class Setup:
                                 f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true)
                                 json.dump(l, f)
                                 _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
+                        except OSError as o:
+                            raise OSError(o) from o
                         except Exception as e:
                             raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
 
@@ -145,7 +150,7 @@ class Setup:
                                     json.dump(jsondata, f)
                                 _LOG.debug("Stored " + key + ": " + str(value) + " into " + CFG_FILENAME)
                             except OSError as o:
-                                raise Exception(o) from o
+                                raise OSError(o) from o
                             except Exception as e:
                                 raise Exception("Error while storing " + key + ": " + str(value) + " into " + CFG_FILENAME) from e
                 else:

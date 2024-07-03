@@ -89,19 +89,19 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         _LOG.info("Entered ip address: " + ip)
 
         #Check if SDCP/SDAP ports are open on the entered ip address
-        _LOG.info("Check if SDCP Port " +  str(config.SDCP_PORT) + " is open")
-
         if not port_check(ip, config.SDCP_PORT):
             _LOG.error("Timeout while connecting to SDCP port " + str(config.SDCP_PORT) + " on " + ip)
             _LOG.info("Please check if you entered the correct ip of the projector and if SDCP/PJTalk is active and running on port " + str(config.SDCP_PORT))
-            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)
+            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)   
+        _LOG.info("Checked if SDCP Port " +  str(config.SDCP_PORT) + " is open")
 
         #TODO Modify port_check() to also work with UDP used for SDAP
     else:
         _LOG.info("No ip address entered. Using auto discovery mode")
 
     try:
-        #Run blocking function set_entity_data which may need to run up to 30 seconds asynchronously in a separate thread to be able to still respond to the websocket server heartbeat ping messages in the meantime and prevent a disconnect from the websocket server
+        #Run blocking function set_entity_data which may need to run up to 30 seconds asynchronously in a separate thread
+        #to be able to still respond to the websocket server heartbeat ping messages in the meantime and prevent a disconnect from the websocket server
         await asyncio.gather(asyncio.to_thread(set_entity_data, ip), asyncio.sleep(1))
     except TimeoutError as t:
         _LOG.info("No response from the projector. Please check if SDAP advertisement is activated on the projector")
@@ -114,8 +114,8 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     try:
         entity_id = config.Setup.get("id")
         entity_name = config.Setup.get("name")
-    except Exception as e:
-        _LOG.error(e)
+    except ValueError as v:
+        _LOG.error(v)
         return ucapi.SetupError()
 
     _LOG.info("Add media player entity with id " + entity_id + " and name " + entity_name)
@@ -124,7 +124,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     if config.POLLER_INTERVAL == 0:
         _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
     else:
-        driver.loop.create_task(driver.attributes_poller(config.Setup.get("id"), config.POLLER_INTERVAL))
+        driver.loop.create_task(driver.attributes_poller(entity_id, config.POLLER_INTERVAL))
         _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
     config.Setup.set("setup_complete", True)
@@ -134,7 +134,8 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
 
 
 def set_entity_data(man_ip: str = None):
-    """Retrieves data from the projector (ip, serial number, model name) via the SDAP protocol which can take up to 30 seconds depending on the advertisement interval setting of the projector
+    """Retrieves data from the projector (ip, serial number, model name) via the SDAP protocol
+    which can take up to 30 seconds depending on the advertisement interval setting of the projector
     
     Afterwards this data will be used to generate the entity id and name and sets and stores them to the runtime storage and config file
 
