@@ -1,4 +1,4 @@
-"""This module contains the media player entity definition class and the Setup class which includes all fixed and customizable variables"""
+"""This module contains some fixed variables, the media player entity definition class and the Setup class which includes all fixed and customizable variables"""
 
 import json
 import os

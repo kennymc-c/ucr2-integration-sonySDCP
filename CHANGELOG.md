@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking changes
 - The configuration json file is now created in the root of the repository. Existing users have to move the config.json file from the intg-sonysdcp directory
-- The working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has already.
+- The working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted.
 - In preparation to the upcoming custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository to adapt to the official UC integrations
-
+ 
 ### Added
 - Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 

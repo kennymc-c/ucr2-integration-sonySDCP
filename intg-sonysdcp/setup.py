@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-"""Module that includes all function need for the setup and reconfiguration process"""
+"""Module that includes all functions needed for the setup and reconfiguration process"""
 
 import asyncio
 import logging
 
-import ipaddress
+from ipaddress import ip_address
 import socket
 import ucapi
 
@@ -36,7 +36,7 @@ def port_check(ip, port):
 
 
 async def init():
-    """Initiates the driver advertisement and first setup page to the remote using setup.json"""
+    """Advertises the driver metadata and first setup page to the remote using driver.json"""
     await driver.api.init("driver.json", driver_setup_handler)
 
 
@@ -81,7 +81,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     if ip != "":
         #Check if input is a valid ipv4 or ipv6 address
         try:
-            ipaddress.ip_address(ip)
+            ip_address(ip)
         except ValueError:
             _LOG.error("The entered ip address \"" + ip + "\" is not valid")
             return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.NOT_FOUND)
@@ -92,7 +92,7 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         if not port_check(ip, config.SDCP_PORT):
             _LOG.error("Timeout while connecting to SDCP port " + str(config.SDCP_PORT) + " on " + ip)
             _LOG.info("Please check if you entered the correct ip of the projector and if SDCP/PJTalk is active and running on port " + str(config.SDCP_PORT))
-            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)   
+            return ucapi.SetupError(error_type=ucapi.IntegrationSetupError.CONNECTION_REFUSED)
         _LOG.info("Checked if SDCP Port " +  str(config.SDCP_PORT) + " is open")
 
         #TODO Modify port_check() to also work with UDP used for SDAP

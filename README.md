@@ -1,8 +1,8 @@
-# Sony Projector Integration for Unfolded Circle Remote Two and Remote 3
+# Sony Projector integration for Unfolded Circle Remote Two and Remote 3 (Unfolded OS)
 
 ## ⚠️ WARNING ⚠️
 
-### Disclaimer: This software is at an early stage of development and may contain serious bugs that could affect system stability. Please use it at your own risk!
+### Disclaimer: This software may contain bugs that could affect system stability. Please use it at your own risk!
 
 ##
 
@@ -92,7 +92,7 @@ By default the integration checks the status of all attributes every 20 seconds.
 
 ## Usage
 
-### Setup
+### Projector Setup
 
 #### Activate SDCP/PJTalk
 
@@ -100,15 +100,31 @@ Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJT
 
 ![webinterface](webinterface.png)
 
-#### Change SDAP Interval
+#### Optional: Change SDAP Interval
 
 During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
 
 ![advertisement](advertisement.png)
 
-#### Requirements
+## Installation
 
-- UCR2 firmware 1.7.4 or newer to support simple commands
+### Run on the remote
+
+#### Download integration
+
+Download the tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-sonySDCP/releases/latest)
+
+#### Upload to the remote
+
+TBA
+
+### Run as an external integration on a separate server
+
+#### Bare metal/VM
+
+##### Requirements
+
+- Firmware 1.7.4 or newer to support simple commands
 - Python 3.11
 - Install Libraries:  
   (using a [virtual environment](https://docs.python.org/3/library/venv.html) is highly recommended)
@@ -117,13 +133,13 @@ During the initial setup the integration tries to query data from the projector 
 pip3 install -r requirements.txt
 ```
 
-### Run
+##### Start the integration
 
 ```shell
 python3 intg-sonysdcp/driver.py
 ```
 
-### Run as a Docker container
+#### Docker container
 
 For the mDNS advertisement to work correctly it's advised to start the integration in the host network (`--net=host`). You can also set the websocket listening port with the environment variable `UC_INTEGRATION_HTTP_PORT`, set the listening interface with `UC_INTEGRATION_INTERFACE` or change the default debug log level with `UC_LOG_LEVEL`. See available [environment variables](https://github.com/unfoldedcircle/integration-python-library#environment-variables)
 in the Python integration library.
@@ -137,6 +153,8 @@ docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sony
 ## Build self-contained binary for Remote Two
 
 *Note: Uploading custom integrations to the remote is not yet supported with the current firmware. The status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)*
+
+To activate optional settings like the attributes poller task when running the integration on the remote you need to build the integration by yourself.
 
 Unfolded Circle recommends to create a single binary file that has everything in it as python on embedded systems is a nightmare.
 
