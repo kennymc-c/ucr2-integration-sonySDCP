@@ -123,7 +123,7 @@ The driver installation is currently only possible via the Core API and still in
 ```shell
 curl --location 'http://$IP/api/intg/install' \
 --user 'web-configurator:$PIN' \
---form 'file=@"intg-sonysdcp.tar.gz"'
+--form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
 ```
 
 UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)

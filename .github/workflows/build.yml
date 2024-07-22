@@ -48,13 +48,13 @@ jobs:
             bash -c \
             "cd /workspace && \
               python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onefile --name intg-${INTG_NAME} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
+              pyinstaller --clean --onefile --name driver --collect-all zeroconf intg-${INTG_NAME}/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          cp dist/intg-${INTG_NAME} artifacts/bin
+          cp dist/driver artifacts/bin/
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
