@@ -28,7 +28,7 @@ jobs:
           ref: dev 
 
       - name: Get version
-        #Needed for env output variable
+        #Id needed for env output variable
         id: get-version
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
@@ -50,16 +50,11 @@ jobs:
               python -m pip install -r requirements.txt && \
               pyinstaller --clean --onefile --name intg-${INTG_NAME} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
 
-      - name: Add version
-        run: |
-          mkdir -p artifacts
-          cd artifacts
-          echo ${{ env.VERSION }} > version.txt
-
       - name: Prepare artifacts
         shell: bash
         run: |
-          cp dist/intg-${INTG_NAME} artifacts/
+          mkdir -p artifacts/bin
+          cp dist/intg-${INTG_NAME} artifacts/bin
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           

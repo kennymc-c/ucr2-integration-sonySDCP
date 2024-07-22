@@ -121,11 +121,12 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
     _LOG.info("Add media player entity with id " + entity_id + " and name " + entity_name)
     await media_player.add_mp(entity_id, entity_name)
 
-    if config.POLLER_INTERVAL == 0:
-        _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
+    poller_interval = config.Setup.get("poller_interval")
+    if poller_interval == 0:
+        _LOG.info("Attributes poller interval set to " + str(poller_interval) + ". Skip creation of attributes poller task")
     else:
-        driver.loop.create_task(driver.attributes_poller(entity_id, config.POLLER_INTERVAL))
-        _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
+        driver.loop.create_task(driver.attributes_poller(entity_id, poller_interval))
+        _LOG.debug("Created attributes poller task with an interval of " + str(poller_interval) + " seconds")
 
     config.Setup.set("setup_complete", True)
     _LOG.info("Setup complete")

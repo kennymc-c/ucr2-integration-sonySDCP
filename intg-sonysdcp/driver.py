@@ -2,6 +2,7 @@
 
 """Main driver file. Run this module to start the integration driver"""
 
+import sys
 import asyncio
 import logging
 from typing import Any
@@ -14,8 +15,6 @@ from pysdcp.protocol import *
 import config
 import setup
 import media_player
-
-# os.environ["UC_INTEGRATION_INTERFACE"] = ""
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
@@ -46,12 +45,12 @@ async def startcheck():
 
         await media_player.add_mp(entity_id, entity_name)
 
-        #Create attributes poller task
-        if config.POLLER_INTERVAL == 0:
-            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
+        poller_interval = config.Setup.get("poller_interval")
+        if poller_interval == 0:
+            _LOG.info("Attributes poller interval set to " + str(poller_interval) + ". Skip creation of attributes poller task")
         else:
-            loop.create_task(attributes_poller(entity_id, config.POLLER_INTERVAL))
-            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
+            loop.create_task(attributes_poller(entity_id, poller_interval))
+            _LOG.debug("Created attributes poller task with an interval of " + str(poller_interval) + " seconds")
 
 
 
@@ -183,9 +182,8 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-async def main():
-    """Main function that gets logging from all sub modules and starts the driver"""
-    logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+def getLogger():
+    """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
     logging.getLogger("ucapi.api").setLevel(level)
@@ -195,6 +193,30 @@ async def main():
     logging.getLogger("media_player").setLevel(level)
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
+
+
+
+async def main():
+    """Main function that gets logging from all sub modules and starts the driver"""
+
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and attributes poller interval
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+
+        logging.basicConfig(format="%(name)-14s | %(message)s")
+        getLogger()
+
+        _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
+        config.Setup.set("bundle_mode", True)
+
+        cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
+        config.Setup.set("cfg_path", cfg_path)
+        _LOG.debug("Store configuration in " + cfg_path)
+
+        _LOG.info("Deactivating attributes poller to reduce battery consumption when running on the remote")
+        config.Setup.set("poller_interval", 0)
+    else:
+        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        getLogger()
 
     _LOG.debug("Starting driver")
 

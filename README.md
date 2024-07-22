@@ -110,13 +110,23 @@ During the initial setup the integration tries to query data from the projector 
 
 ### Run on the remote
 
+_This requires firmware 1.9.0 or newer_
+
 #### Download integration
 
 Download the tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-sonySDCP/releases/latest)
 
-#### Upload to the remote
+#### Install driver on the remote
 
-TBA
+The driver installation is currently only possible via the Core API and still in beta. The configuration file is not included in backups.
+
+```shell
+curl --location 'http://$IP/api/intg/install' \
+--user 'web-configurator:$PIN' \
+--form 'file=@"intg-sonysdcp.tar.gz"'
+```
+
+UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)
 
 ### Run as an external integration on a separate server
 
@@ -151,8 +161,6 @@ docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sony
 ```
 
 ## Build self-contained binary for Remote Two
-
-*Note: Uploading custom integrations to the remote is not yet supported with the current firmware. The status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)*
 
 To activate optional settings like the attributes poller task when running the integration on the remote you need to build the integration by yourself.
 
