@@ -54,9 +54,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          mv dist/intg-appletv artifacts/
-          mv artifacts/intg-appletv artifacts/bin
-          mv artifacts/bin/intg-appletv artifacts/bin/driver
+          mv dist/intg-${{ env.INTG_NAME }} artifacts/
+          mv artifacts/intg-${{ env.INTG_NAME }} artifacts/bin
+          mv artifacts/bin/intg-${{ env.INTG_NAME }} artifacts/bin/driver
           cp driver.json artifacts/
           echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           

@@ -162,19 +162,22 @@ docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sony
 
 ## Build
 
-## Build distribution binary
+Instead of downloading the integration driver archive from the release assets you can also build and create the needed binary and tar.gz archive yourself.
 
-Instead of downloading the integration from the release assets you can also build the integration tar.gz archive yourself.
-For Python based integrations Unfolded Circle recommends to create a distribution binary file that has everything in it, including the Python runtime and all required modules and native libraries.
+For Python based integrations Unfolded Circle recommends to use `pyinstaller` to create a distribution binary that has everything in it, including the Python runtime and all required modules and native libraries.
 
-To do that, we need to compile it on the target architecture by using `pyinstaller` that does not support cross compilation.
+### Build distribution binary
+
+First we need to compile the driver on the target architecture because `pyinstaller` does not support cross compilation.
 
 The `--onefile` option to create a one-file bundled executable should be avoided:
 - Higher startup cost, since the wrapper binary must first extract the archive.
 - Files are extracted to the /tmp directory on the device, which is an in-memory filesystem.  
   This will further reduce the available memory for the integration drivers!
 
-### x86-64 Linux
+We use the `--onedir` option instead.
+
+#### x86-64 Linux
 
 On x86-64 Linux we need Qemu to emulate the aarch64 target platform:
 
@@ -197,7 +200,7 @@ docker run --rm --name builder \
       pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
 ```
 
-### aarch64 Linux / Mac
+#### aarch64 Linux / Mac
 
 On an aarch64 host platform, the build image can be run directly (and much faster):
 
@@ -212,11 +215,15 @@ docker run --rm --name builder \
       pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
 ```
 
-Now we need to create the tar.gz archive that contains the driver.json metadata file and the driver binary inside the bin directory
+### Create tar.gz archive
+
+Now we need to create the tar.gz archive that can be installed on the remote and contains the driver.json metadata file and the driver distribution binary inside the bin directory
 
 ```shell
 mkdir -p artifacts/bin
-cp dist/driver artifacts/bin/
+mv dist/intg-sonysdcp artifacts/
+mv artifacts/intg-sonysdcp artifacts/bin
+mv artifacts/bin/intg-sonysdcp artifacts/bin/driver
 cp driver.json artifacts/
 tar czvf uc-integration-sonysdcp-aarch64.tar.gz -C artifacts .
 ```
