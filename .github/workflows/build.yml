@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  INTG_NAME: sonysdcp
   # Python version to use in the builder image. See https://hub.docker.com/r/unfoldedcircle/r2-pyinstaller for possible versions.
   PYTHON_VER: 3.11.6-0.2.0
 
@@ -15,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     #Save version to env output variable to be able to use it in the following release job as a tag
     outputs:
-      version: ${{ steps.get-version-and-name.outputs.VERSION }}
-      int_name: ${{ steps.get-version-and-name.outputs.INTG_NAME }}
+      version: ${{ steps.get-version-and-id.outputs.VERSION }}
+      int_name: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,15 +27,15 @@ jobs:
           # Only for testing. Delete when merging with main branch
           ref: dev 
 
-      - name: Get version and name
+      - name: Get version and id
         #Id needed for env output variable
-        id: get-version-and-name
+        id: get-version-and-id
         run: |
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_ENV
-          echo "INT_NAME=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_ENV
           # Save to Github output to later use it in Create Release job
           echo "VERSION=$(jq .version -r driver.json)" >> $GITHUB_OUTPUT
-          echo "INTG_NAME=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
+          echo "DRIVER_ID=$(jq .driver_id -r driver.json)" >> $GITHUB_OUTPUT
 
       - name: Build
         run: |
@@ -49,16 +50,16 @@ jobs:
             bash -c \
             "cd /workspace && \
               python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onedir --name intg-${INTG_NAME} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
+              pyinstaller --clean --onedir --name intg-${DRIVER_ID} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
 
       - name: Prepare artifacts
         shell: bash
         run: |
           mkdir -p artifacts/bin
-          mv dist/intg-${{ env.INTG_NAME }}/* artifacts/bin
-          mv artifacts/bin/intg-${{ env.INTG_NAME }} artifacts/bin/driver
+          mv dist/intg-${{ env.DRIVER_ID }}/* artifacts/bin
+          mv artifacts/bin/intg-${{ env.DRIVER_ID }} artifacts/bin/driver
           cp driver.json artifacts/
-          echo "ARTIFACT_NAME=uc-intg-${{ env.INTG_NAME }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=uc-intg-${{ env.DRIVER_ID }}-${{ env.VERSION }}-aarch64" >> $GITHUB_ENV
           
       - name: Create upload artifact archive
         shell: bash
@@ -98,12 +99,12 @@ jobs:
 
       - name: Create hash file
         run: |
-          for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{needs.build.outputs.intg_name}}.hash; done;
+          for filename in *.tar.gz; do echo "sha256  `sha256sum $filename`" >> ${{needs.build.outputs.driver_id}}.hash; done;
 
       - name: Create release draft
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "*.tar.gz,${{needs.build.outputs.intg_name}}.hash"
+          artifacts: "*.tar.gz,${{needs.build.outputs.driver_id}}.hash"
           draft: true
           generateReleaseNotes: true
           artifactErrorsFailBuild: true
