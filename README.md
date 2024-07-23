@@ -212,7 +212,7 @@ docker run --rm --name builder \
     bash -c \
       "cd /workspace && \
       python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
+      pyinstaller --clean --onedir --name intg-sonysdcp intg-sonysdcp/driver.py"
 ```
 
 ### Create tar.gz archive

@@ -48,7 +48,7 @@ jobs:
             bash -c \
             "cd /workspace && \
               python -m pip install -r requirements.txt && \
-              pyinstaller --clean --onedir --name driver --collect-all zeroconf intg-${INTG_NAME}/driver.py"
+              pyinstaller --clean --onedir --name intg-${{ env.INTG_NAME }} --collect-all zeroconf intg-${INTG_NAME}/driver.py"
 
       - name: Prepare artifacts
         shell: bash
