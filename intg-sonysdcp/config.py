@@ -98,7 +98,7 @@ class Setup:
     "setup_reconfigure": False,
     "standby": False,
     "bundle_mode": False,
-    "poller_interval": 20, #Use to 0 to deactivate, will be set to 0 when running on the remote
+    "poller_interval": 20, #Use 0 to deactivate; will be automatically set to 0 when running on the remote (bundle_mode: True)
     "cfg_path": "config.json"
     }
     __setters = ["ip", "id", "name", "setup_complete", "setup_reconfigure", "standby", "bundle_mode", "poller_interval", "cfg_path"]

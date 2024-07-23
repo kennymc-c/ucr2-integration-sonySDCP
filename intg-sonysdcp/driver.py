@@ -3,11 +3,11 @@
 """Main driver file. Run this module to start the integration driver"""
 
 import sys
+import os
 import asyncio
 import logging
 from typing import Any
 
-import os
 import ucapi
 
 from pysdcp.protocol import *
@@ -202,7 +202,7 @@ async def main():
     #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and attributes poller interval
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
 
-        logging.basicConfig(format="%(name)-14s | %(message)s")
+        logging.basicConfig(format="%(name)-14s %(message)s")
         getLogger()
 
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
@@ -210,7 +210,7 @@ async def main():
 
         cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
         config.Setup.set("cfg_path", cfg_path)
-        _LOG.debug("Store configuration in " + cfg_path)
+        _LOG.info("The configuration is stored in " + cfg_path)
 
         _LOG.info("Deactivating attributes poller to reduce battery consumption when running on the remote")
         config.Setup.set("poller_interval", 0)

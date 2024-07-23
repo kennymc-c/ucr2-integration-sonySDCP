@@ -160,13 +160,19 @@ All data is mounted to `/usr/src/app`:
 docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sonySDCP':'/usr/src/app/':'rw' 'python:3.11' /usr/src/app/docker-entry.sh
 ```
 
-## Build self-contained binary for Remote Two
+## Build
 
-To activate optional settings like the attributes poller task when running the integration on the remote you need to build the integration by yourself.
+## Build distribution binary
 
-Unfolded Circle recommends to create a single binary file that has everything in it as python on embedded systems is a nightmare.
+Instead of downloading the integration from the release assets you can also build the integration tar.gz archive yourself.
+For Python based integrations Unfolded Circle recommends to create a distribution binary file that has everything in it, including the Python runtime and all required modules and native libraries.
 
-To do that, we need to compile it on the target architecture as `pyinstaller` does not support cross compilation.
+To do that, we need to compile it on the target architecture by using `pyinstaller` that does not support cross compilation.
+
+The `--onefile` option to create a one-file bundled executable should be avoided:
+- Higher startup cost, since the wrapper binary must first extract the archive.
+- Files are extracted to the /tmp directory on the device, which is an in-memory filesystem.  
+  This will further reduce the available memory for the integration drivers!
 
 ### x86-64 Linux
 
@@ -184,10 +190,11 @@ docker run --rm --name builder \
     --platform=aarch64 \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
     bash -c \
-      "python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onefile --name intg-sonysdcp intg-sonysdcp/driver.py"
+      "cd /workspace && \
+      python -m pip install -r requirements.txt && \
+      pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
 ```
 
 ### aarch64 Linux / Mac
@@ -198,10 +205,20 @@ On an aarch64 host platform, the build image can be run directly (and much faste
 docker run --rm --name builder \
     --user=$(id -u):$(id -g) \
     -v "$PWD":/workspace \
-    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6  \
+    docker.io/unfoldedcircle/r2-pyinstaller:3.11.6-0.2.0  \
     bash -c \
-      "python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onefile --name intg-sonysdcp intg-sonysdcp/driver.py"
+      "cd /workspace && \
+      python -m pip install -r requirements.txt && \
+      pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
+```
+
+Now we need to create the tar.gz archive that contains the driver.json metadata file and the driver binary inside the bin directory
+
+```shell
+mkdir -p artifacts/bin
+cp dist/driver artifacts/bin/
+cp driver.json artifacts/
+tar czvf uc-integration-sonysdcp-aarch64.tar.gz -C artifacts .
 ```
 
 ## Versioning
