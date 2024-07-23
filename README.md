@@ -162,7 +162,7 @@ docker run --net=host -n 'ucr2-integration-sonysdcp' -v './ucr2-integration-sony
 
 ## Build
 
-Instead of downloading the integration driver archive from the release assets you can also build and create the needed binary and tar.gz archive yourself.
+Instead of downloading the integration driver archive from the release assets you can also build and create the needed distribution binary and tar.gz archive yourself.
 
 For Python based integrations Unfolded Circle recommends to use `pyinstaller` to create a distribution binary that has everything in it, including the Python runtime and all required modules and native libraries.
 
@@ -221,8 +221,7 @@ Now we need to create the tar.gz archive that can be installed on the remote and
 
 ```shell
 mkdir -p artifacts/bin
-mv dist/intg-sonysdcp artifacts/
-mv artifacts/intg-sonysdcp artifacts/bin
+mv dist/intg-sonysdcp/* artifacts/bin
 mv artifacts/bin/intg-sonysdcp artifacts/bin/driver
 cp driver.json artifacts/
 tar czvf uc-integration-sonysdcp-aarch64.tar.gz -C artifacts .
