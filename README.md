@@ -224,7 +224,7 @@ mkdir -p artifacts/bin
 mv dist/intg-sonysdcp/* artifacts/bin
 mv artifacts/bin/intg-sonysdcp artifacts/bin/driver
 cp driver.json artifacts/
-tar czvf uc-integration-sonysdcp-aarch64.tar.gz -C artifacts .
+tar czvf uc-intg-sonysdcp-aarch64.tar.gz -C artifacts .
 ```
 
 ## Versioning
