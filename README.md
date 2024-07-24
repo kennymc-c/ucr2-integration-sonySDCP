@@ -110,11 +110,11 @@ During the initial setup the integration tries to query data from the projector 
 
 ### Run on the remote
 
-_This requires firmware 1.9.0 or newer_
+_This requires firmware 1.9.1 or newer_
 
 #### Download integration
 
-Download the tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-sonySDCP/releases/latest)
+Download the tar.gz archive in the assets section from the [latest release](/releases/latest)
 
 #### Install driver on the remote
 
@@ -197,7 +197,7 @@ docker run --rm --name builder \
     bash -c \
       "cd /workspace && \
       python -m pip install -r requirements.txt && \
-      pyinstaller --clean --onedir --name driver intg-sonysdcp/driver.py"
+      pyinstaller --clean --onedir --name int-sonysdcp intg-sonysdcp/driver.py"
 ```
 
 #### aarch64 Linux / Mac

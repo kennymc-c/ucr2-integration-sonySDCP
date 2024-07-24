@@ -398,7 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Test and config files
-intg-sonysdcp/pysdcp_test.py
-intg-sonysdcp/config.json
-intg-sonysdcp/config-test.json
+config.json
 .venv/
+manual-build+upload.sh

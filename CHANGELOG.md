@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Due to the custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository
 - Corrected the semantic version scheme in driver.json (x.x to x.x.x)
 
+
+
 ## [0.6-beta] - 2024-05-11
 
 ### Added
@@ -33,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Replaced a variable reference log warning message with a clearer error description. This message appears if attributes of an entity should be updated that the remote has not yet subscribed to, e.g. shortly after the integration setup has been completed or if the integration configuration has been deleted just on the remote side.
 
+
+
 ## [0.5-beta] - 2024-05-05
 
 ### Changed
@@ -40,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed attributes poller not running due to a check against an API function that has not been implemented in the remote core (get_configured_entities)
+
+
 
 ## [0.4-beta] - 2024-05-03
 
@@ -52,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The CURSOR_LEFT command has been mapped to the back command on the remote as in most cases this has the same function as a typical back command that the projector doesn't have
 
+
+
 ## [0.3-beta] - 2024-04-17
 
 ### Added
@@ -61,6 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Split up setup flow and media player into separate files
 - Optimize SDAP setup flow
+
+
 
 ## [0.2-beta] - 2024-04-04
 
@@ -77,6 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a missing comma that was causing two simple commands to show as a single command
 - Fixed a naming problem for picture presets
 - Corrected minimum WS Core API version in setup.json to 0.24.3. Previous version was a REST API version number
+
+
 
 ## [0.1-beta] - 2024-03-24
 
