@@ -17,7 +17,7 @@ jobs:
     #Save version to env output variable to be able to use it in the following release job as a tag
     outputs:
       version: ${{ steps.get-version-and-id.outputs.VERSION }}
-      int_name: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
+      driver_id: ${{ steps.get-version-and-id.outputs.DRIVER_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

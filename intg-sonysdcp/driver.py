@@ -6,6 +6,7 @@ import sys
 import os
 import asyncio
 import logging
+import logging.handlers
 from typing import Any
 
 import ucapi
@@ -186,6 +187,7 @@ def getLogger():
     """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
+
     logging.getLogger("ucapi.api").setLevel(level)
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
@@ -202,7 +204,7 @@ async def main():
     #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and attributes poller interval
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
 
-        logging.basicConfig(format="%(name)-14s %(message)s")
+        logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
         getLogger()
 
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
