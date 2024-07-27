@@ -183,7 +183,7 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-def setupLogger():
+def setup_logger():
     """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
@@ -205,7 +205,7 @@ async def main():
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
 
         logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
-        setupLogger()
+        setup_logger()
 
         _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
         config.Setup.set("bundle_mode", True)
@@ -218,7 +218,7 @@ async def main():
         config.Setup.set("poller_interval", 0)
     else:
         logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
-        setupLogger()
+        setup_logger()
 
     _LOG.debug("Starting driver")
 
