@@ -10,14 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 *Changes in the next release*
 
 ### Breaking changes
-- **🎉 This integration can now also run on the remote. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote](/README.md#Run-on-the-remote))
-- When running as an external integration the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-sonysdcp directory
+- **🎉 This integration can now also run on the remote as a custom integration driver. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote](/README.md#Run-on-the-remote-as-a-custom-integration-driver))
+- When running as an external integration driver the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-sonysdcp directory
  
 ### Added
 - Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 
 ### Changed
-- Deactivate the attributes poller task when the integration runs on the remote.
+- Deactivate the attributes poller task when the integration runs on the remote as a custom integration driver.
   - The reason for this is to reduce battery consumption and save cpu/memory usage. Also this function is just needed if you control the projector alternating with a second device. In a future release this setting may also be adjustable in the integration setup.
 - Due to the custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository
 - Corrected the semantic version scheme in driver.json (x.x to x.x.x)

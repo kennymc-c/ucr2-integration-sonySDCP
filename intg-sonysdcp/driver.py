@@ -59,9 +59,7 @@ async def attributes_poller(entity_id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
         await asyncio.sleep(interval)
-        #TODO #WAIT Uncomment when (get_)configured_entities are implemented in the remote core
-        #https://studio.asyncapi.com/?url=https://raw.githubusercontent.com/unfoldedcircle/core-api/main/integration-api/asyncapi.yaml#message-get_configured_entities
-        # if api.configured_entities.contains(id):
+        #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
         if config.Setup.get("standby"):
             continue
         try:
