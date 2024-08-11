@@ -1,4 +1,4 @@
-# Sony Projector integration for Unfolded Circle Remote Two and Remote 3 (Unfolded OS)
+# Sony Projector integration for Unfolded Circle Remote Devices
 
 ## ⚠️ WARNING ⚠️
 
@@ -6,7 +6,7 @@
 
 ##
 
-Integration for Unfolded Circle [Remote Two](https://www.unfoldedcircle.com/remote-two) and [Remote 3](https://www.unfoldedcircle.com) running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) to control Sony projectors that support the SDCP/PJ Talk protocol.
+Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to control Sony projectors that support the SDCP/PJ Talk protocol.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.

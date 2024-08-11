@@ -59,6 +59,7 @@ async def attributes_poller(entity_id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
         await asyncio.sleep(interval)
+        #TODO Implement check if there are too many timeouts to the projector and automatically deactivate poller and set entity status to unknown
         #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
         if config.Setup.get("standby"):
             continue
