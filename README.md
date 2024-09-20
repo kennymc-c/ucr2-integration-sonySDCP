@@ -68,7 +68,7 @@ By default the integration checks the status of all attributes every 20 seconds.
 - Additional remote entity to automatically map all commands to buttons and the ui grid
 - Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
 
-*Planned improvements are labeled with #TODO in the code*
+* Additional smaller planned improvements are labeled with #TODO in the code*
 
 ### Known supported projectors
 
@@ -110,15 +110,20 @@ During the initial setup the integration tries to query data from the projector 
 
 ### Run on the remote as a custom integration driver
 
-_This requires firmware 1.9.1 or newer_
+_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks._
+
+#### Missing firmware features
+
+- The configuration file of custom integrations are not included in backups.
+- You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to add re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
 
 #### Download integration driver
 
-Download the tar.gz archive in the assets section from the [latest release](/releases/latest)
+Download the uc-intg-sonysdcp-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](/releases/latest)
 
 #### Install custom integration driver on the remote
 
-The custom integration driver installation is currently only possible via the Core API and still in beta. The configuration file is not included in backups.
+The custom integration driver installation is currently only possible via the Core API. 
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
@@ -126,7 +131,9 @@ curl --location 'http://$IP/api/intg/install' \
 --form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
 ```
 
-UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79)
+There is also a Core API GUI available at https://[Remote-IP]/doc/core-rest/. Scroll down to POST intg/install and click on Try it out, choose a file and then click on Execute.
+
+UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
 
 ### Run on a separate device as an external integration 
 
