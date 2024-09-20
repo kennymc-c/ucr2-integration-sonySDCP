@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes in the next release*
 
+## [0.7.0-beta] - 2024-09-20
+
+### Breaking changes
+- **🎉 This integration can now also run on the remote as a custom integration driver. From now on each release will have a tar.gz file attached that can be installed on the remote** (see [Run on the remote](/README.md#Run-on-the-remote-as-a-custom-integration-driver))
+  - ⚠️ Running custom integrations on the remote is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see link above) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks.
+- When running as an external integration driver the working directory when starting driver.py should now be the root of the repository. The path in docker-entry.sh has been adjusted. The configuration json file is therefore now created in the root of the integration directory. Existing users have to move config.json from the intg-sonysdcp directory
+ 
+### Added
+- Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
+
+### Changed
+- Deactivate the attributes poller task when the integration runs on the remote as a custom integration driver.
+  - The reason for this is to reduce battery consumption and save cpu/memory usage. Also this function is just needed if you control the projector alternating with a second device. In a future release this setting may also be adjustable in the integration setup.
+- Due to the custom integration upload feature setup.json has been renamed to driver.json and moved to the root of the repository
+- Corrected the semantic version scheme in driver.json (x.x to x.x.x)
+
+
+
 ## [0.6-beta] - 2024-05-11
 
 ### Added
@@ -20,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Replaced a variable reference log warning message with a clearer error description. This message appears if attributes of an entity should be updated that the remote has not yet subscribed to, e.g. shortly after the integration setup has been completed or if the integration configuration has been deleted just on the remote side.
 
+
+
 ## [0.5-beta] - 2024-05-05
 
 ### Changed
@@ -27,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed attributes poller not running due to a check against an API function that has not been implemented in the remote core (get_configured_entities)
+
+
 
 ## [0.4-beta] - 2024-05-03
 
@@ -39,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The CURSOR_LEFT command has been mapped to the back command on the remote as in most cases this has the same function as a typical back command that the projector doesn't have
 
+
+
 ## [0.3-beta] - 2024-04-17
 
 ### Added
@@ -48,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Split up setup flow and media player into separate files
 - Optimize SDAP setup flow
+
+
 
 ## [0.2-beta] - 2024-04-04
 
@@ -64,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a missing comma that was causing two simple commands to show as a single command
 - Fixed a naming problem for picture presets
 - Corrected minimum WS Core API version in setup.json to 0.24.3. Previous version was a REST API version number
+
+
 
 ## [0.1-beta] - 2024-03-24
 

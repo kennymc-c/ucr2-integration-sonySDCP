@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+"""Main driver file. Run this module to start the integration driver"""
+
+import sys
+import os
 import asyncio
 import logging
+import logging.handlers
 from typing import Any
 
-import os
 import ucapi
 
 from pysdcp.protocol import *
@@ -12,8 +16,6 @@ from pysdcp.protocol import *
 import config
 import setup
 import media_player
-
-# os.environ["UC_INTEGRATION_INTERFACE"] = ""
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
@@ -24,18 +26,18 @@ api = ucapi.IntegrationAPI(loop)
 
 async def startcheck():
     """
-    Called at the start of the integration driver to load the config file into the runtime storage and add a media player entity
+    Called at the start of the integration driver to load the config file into the runtime storage, add a media player entity and start the attributes poller task
     """
     try:
-        config.setup.load()
+        config.Setup.load()
     except OSError as o:
         _LOG.critical(o)
         _LOG.critical("Stopping integration driver")
         raise SystemExit(0) from o
 
-    if config.setup.get("setup_complete"):
-        entity_id = config.setup.get("id")
-        entity_name = config.setup.get("name")
+    if config.Setup.get("setup_complete"):
+        entity_id = config.Setup.get("id")
+        entity_name = config.Setup.get("name")
 
         if api.available_entities.contains(entity_id):
             _LOG.debug("Entity with id " + entity_id + " is already in storage as available entity")
@@ -44,26 +46,28 @@ async def startcheck():
 
         await media_player.add_mp(entity_id, entity_name)
 
+        poller_interval = config.Setup.get("poller_interval")
+        if poller_interval == 0:
+            _LOG.info("Attributes poller interval set to " + str(poller_interval) + ". Skip creation of attributes poller task")
+        else:
+            loop.create_task(attributes_poller(entity_id, poller_interval))
+            _LOG.debug("Created attributes poller task with an interval of " + str(poller_interval) + " seconds")
+
 
 
 async def attributes_poller(entity_id: str, interval: int) -> None:
     """Projector data poller."""
     while True:
-            await asyncio.sleep(interval)
-            #TODO #WAIT Uncomment when (get_)configured_entities are implemented in the remote core
-            #https://studio.asyncapi.com/?url=https://raw.githubusercontent.com/unfoldedcircle/core-api/main/integration-api/asyncapi.yaml#message-get_configured_entities
-            # if api.configured_entities.contains(id):
-            if config.setup.get("standby"):
-                continue
-            try:
-                #TODO Add check if network and remote is reachable
-                # remote_ip = 
-                # if not setup.port_check(remote_ip, 80):
-                #     _LOG.error("Remote or network not reachable")
-                # else:
-                    await media_player.update_attributes(entity_id)
-            except Exception as e:
-                _LOG.warning(e)
+        await asyncio.sleep(interval)
+        #TODO Implement check if there are too many timeouts to the projector and automatically deactivate poller and set entity status to unknown
+        #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
+        if config.Setup.get("standby"):
+            continue
+        try:
+            #TODO Add check if network and remote is reachable
+            await media_player.update_attributes(entity_id)
+        except Exception as e:
+            _LOG.warning(e)
 
 
 
@@ -84,8 +88,12 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
 
-    ip = config.setup.get("ip")
-    
+    try:
+        ip = config.Setup.get("ip")
+    except ValueError as v:
+        _LOG.error(v)
+        return ucapi.StatusCodes.SERVER_ERROR
+
     return media_player.mp_cmd_assigner(entity.id, cmd_id, _params, ip)
 
 
@@ -124,8 +132,8 @@ async def on_r2_enter_standby() -> None:
     _LOG.info("Received enter standby event message from remote")
 
     _LOG.debug("Set config.R2_IN_STANDBY to True")
-    config.setup.set("standby", True)
-    
+    config.Setup.set("standby", True)
+
 
 
 @api.listens_to(ucapi.Events.EXIT_STANDBY)
@@ -138,7 +146,7 @@ async def on_r2_exit_standby() -> None:
     _LOG.info("Received exit standby event message from remote")
 
     _LOG.debug("Set config.R2_IN_STANDBY to False")
-    config.setup.set("standby", False)
+    config.Setup.set("standby", False)
 
 
 
@@ -151,7 +159,7 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     """
     _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
-    config.setup.set("standby", False)
+    config.Setup.set("standby", False)
 
     for entity_id in entity_ids:
         try:
@@ -174,11 +182,11 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
 
 
-async def main():
-
-    logging.basicConfig(format='%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+def setup_logger():
+    """Get logger from all modules"""
 
     level = os.getenv("UC_LOG_LEVEL", "DEBUG").upper()
+
     logging.getLogger("ucapi.api").setLevel(level)
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
@@ -187,6 +195,30 @@ async def main():
     logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
 
+
+
+async def main():
+    """Main function that gets logging from all sub modules and starts the driver"""
+
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and attributes poller interval
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+
+        logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
+        setup_logger()
+
+        _LOG.info("This integration is running in a PyInstaller bundle. Probably on the remote hardware")
+        config.Setup.set("bundle_mode", True)
+
+        cfg_path = os.environ["UC_CONFIG_HOME"] + "/config.json"
+        config.Setup.set("cfg_path", cfg_path)
+        _LOG.info("The configuration is stored in " + cfg_path)
+
+        _LOG.info("Deactivating attributes poller to reduce battery consumption when running on the remote")
+        config.Setup.set("poller_interval", 0)
+    else:
+        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        setup_logger()
+
     _LOG.debug("Starting driver")
 
     #TODO #WAIT Remove all pySDCP files and add pySDCP to requirements.txt when upstream PR has been merged:
@@ -194,13 +226,6 @@ async def main():
 
     await setup.init()
     await startcheck()
-
-    if config.setup.get("setup_complete"):
-        if config.POLLER_INTERVAL == 0:
-            _LOG.info("POLLER_INTERVAL set to " + str(config.POLLER_INTERVAL) + ". Skip creation of attributes poller task")
-        else:
-            loop.create_task(attributes_poller(config.setup.get("id"), config.POLLER_INTERVAL))
-            _LOG.debug("Created attributes poller task with an interval of " + str(config.POLLER_INTERVAL) + " seconds")
 
 
 
