@@ -1,8 +1,8 @@
 # Sony Projector integration for Unfolded Circle Remote Devices
 
-## ⚠️ WARNING ⚠️
+## ⚠️ Disclaimer ⚠️
 
-### Disclaimer: This software may contain bugs that could affect system stability. Please use it at your own risk!
+This software may contain bugs that could affect system stability. Please use it at your own risk!
 
 ##
 
@@ -11,7 +11,7 @@ Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
 
-### Supported commands:
+### Supported commands
 
 - Turn On/Off/Toggle
 - Mute/Unmute/Toggle
@@ -50,9 +50,9 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 \** _May not work work with all video signals. Please refer to Sony's user manual_ \
 \*** _May not work on certain projector models that do not support this mode/feature. Please refer to Sony's user manual_
 
-_If a command can't be processed or applied by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log_
+If a command can't be processed or applied by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log
 
-### Supported attributes:
+### Supported attributes
 
 - State (On, Off, Unknown)
 - Muted (True, False)
@@ -61,18 +61,18 @@ _If a command can't be processed or applied by the projector this will result in
 
 By default the integration checks the status of all attributes every 20 seconds. The interval can be changed in config.py. Set it to 0 to deactivate this function.
 
-### Planned features:
+### Planned features
 
 - Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
 - Additional sensor entity to show the lamp time
 - Additional remote entity to automatically map all commands to buttons and the ui grid
 - Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
 
-* Additional smaller planned improvements are labeled with #TODO in the code*
+Additional smaller planned improvements are labeled with #TODO in the code
 
 ### Known supported projectors
 
-*According to pySDCP and/or personal testing.*
+_According to pySDCP and/or personal testing._
 
 - VPL-HW65ES
 - VPL-VW100
@@ -88,7 +88,7 @@ By default the integration checks the status of all attributes every 20 seconds.
 - VPL-VW528
 - VPL-VW665
 
-*Please inform me if you have a projector that is not on this list and it works with pySDCP or this integration*
+Please inform me if you have a projector that is not on this list and it works with pySDCP or this integration
 
 ## Usage
 
@@ -96,7 +96,7 @@ By default the integration checks the status of all attributes every 20 seconds.
 
 #### Activate SDCP/PJTalk
 
-Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJTalk_, activate the *Start PJ Talk Service* checkbox and click on _Apply_.
+Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJTalk_, activate the _Start PJ Talk Service_ checkbox and click on _Apply_.
 
 ![webinterface](webinterface.png)
 
@@ -123,7 +123,7 @@ Download the uc-intg-sonysdcp-x.x.x-aarch64.tar.gz archive in the assets section
 
 #### Install custom integration driver on the remote
 
-The custom integration driver installation is currently only possible via the Core API. 
+The custom integration driver installation is currently only possible via the Core API.
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
@@ -135,7 +135,7 @@ There is also a Core API GUI available at https://[Remote-IP]/doc/core-rest/. Sc
 
 UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
 
-### Run on a separate device as an external integration 
+### Run on a separate device as an external integration
 
 #### Bare metal/VM
 
@@ -178,6 +178,7 @@ For Python based integrations Unfolded Circle recommends to use `pyinstaller` to
 First we need to compile the driver on the target architecture because `pyinstaller` does not support cross compilation.
 
 The `--onefile` option to create a one-file bundled executable should be avoided:
+
 - Higher startup cost, since the wrapper binary must first extract the archive.
 - Files are extracted to the /tmp directory on the device, which is an in-memory filesystem.  
   This will further reduce the available memory for the integration drivers!
