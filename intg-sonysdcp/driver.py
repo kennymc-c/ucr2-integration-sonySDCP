@@ -7,15 +7,15 @@ import os
 import asyncio
 import logging
 import logging.handlers
-from typing import Any
 
 import ucapi
-
 from pysdcp.protocol import *
 
 import config
 import setup
 import media_player
+import sensor
+import remote
 
 _LOG = logging.getLogger("driver")  # avoid having __main__ in log messages
 
@@ -26,7 +26,7 @@ api = ucapi.IntegrationAPI(loop)
 
 async def startcheck():
     """
-    Called at the start of the integration driver to load the config file into the runtime storage, add a media player entity and start the attributes poller task
+    Called at the start of the integration driver to load the config file into the runtime storage and add all needed entities and create attributes poller tasks
     """
     try:
         config.Setup.load()
@@ -36,65 +36,33 @@ async def startcheck():
         raise SystemExit(0) from o
 
     if config.Setup.get("setup_complete"):
-        entity_id = config.Setup.get("id")
-        entity_name = config.Setup.get("name")
 
-        if api.available_entities.contains(entity_id):
-            _LOG.debug("Entity with id " + entity_id + " is already in storage as available entity")
-        else:
-            _LOG.info("Add entity with id " + entity_id + " and name " + entity_name + " as available entity")
-
-        await media_player.add_mp(entity_id, entity_name)
-
-        poller_interval = config.Setup.get("poller_interval")
-        if poller_interval == 0:
-            _LOG.info("Attributes poller interval set to " + str(poller_interval) + ". Skip creation of attributes poller task")
-        else:
-            loop.create_task(attributes_poller(entity_id, poller_interval))
-            _LOG.debug("Created attributes poller task with an interval of " + str(poller_interval) + " seconds")
-
-
-
-async def attributes_poller(entity_id: str, interval: int) -> None:
-    """Projector data poller."""
-    while True:
-        await asyncio.sleep(interval)
-        #TODO Implement check if there are too many timeouts to the projector and automatically deactivate poller and set entity status to unknown
-        #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
-        if config.Setup.get("standby"):
-            continue
         try:
-            #TODO Add check if network and remote is reachable
-            await media_player.update_attributes(entity_id)
-        except Exception as e:
-            _LOG.warning(e)
+            mp_entity_id = config.Setup.get("id")
+            mp_entity_name = config.Setup.get("name")
+            rt_entity_id = "remote-"+mp_entity_id
+            config.Setup.set("rt-id", rt_entity_id)
+            rt_entity_name = mp_entity_name
+            config.Setup.set_lt_name_id(mp_entity_id, mp_entity_name)
+            lt_entity_id = config.Setup.get("lt-id")
+            lt_entity_name = config.Setup.get("lt-name")
+        except ValueError as v:
+            _LOG.error(v)
 
+        if api.available_entities.contains(mp_entity_id):
+            _LOG.debug("Projector media player entity with id " + mp_entity_id + " is already in storage as available entity")
+        else:
+            await media_player.add_mp(mp_entity_id, mp_entity_name)
 
+        if api.available_entities.contains(rt_entity_id):
+            _LOG.debug("Projector remote entity with id " + rt_entity_id + " is already in storage as available entity")
+        else:
+            await remote.add_remote(rt_entity_id, rt_entity_name)
 
-async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[str, Any] | None) -> ucapi.StatusCodes:
-    """
-    Media Player command handler.
-
-    Called by the integration-API if a command is sent to a configured media_player-entity.
-
-    :param entity: media_player entity
-    :param cmd_id: command
-    :param _params: optional command parameters
-    :return: status of the command
-    """
-
-    if _params is None:
-        _LOG.info(f"Received {cmd_id} command for {entity.id}")
-    else:
-        _LOG.info(f"Received {cmd_id} command with parameter {_params} for {entity.id}")
-
-    try:
-        ip = config.Setup.get("ip")
-    except ValueError as v:
-        _LOG.error(v)
-        return ucapi.StatusCodes.SERVER_ERROR
-
-    return media_player.mp_cmd_assigner(entity.id, cmd_id, _params, ip)
+        if api.available_entities.contains(lt_entity_id):
+            _LOG.debug("Projector lamp timer sensor entity with id " + lt_entity_id + " is already in storage as available entity")
+        else:
+            await sensor.add_lt_sensor(lt_entity_id, lt_entity_name)
 
 
 
@@ -106,7 +74,19 @@ async def on_r2_connect() -> None:
     Just reply with connected as there is no permanent connection to the projector that needs to be re-established
     """
     _LOG.info("Received connect event message from remote")
+
     await api.set_device_state(ucapi.DeviceStates.CONNECTED)
+
+    if config.Setup.get("setup_complete"):
+        try:
+            ip = config.Setup.get("ip")
+            mp_entity_id = config.Setup.get("id")
+            lt_entity_id = config.Setup.get("lt-id")
+        except ValueError as v:
+            _LOG.error(v)
+
+        await media_player.create_mp_poller(mp_entity_id, ip)
+        await sensor.create_lt_poller(lt_entity_id, ip)
 
 
 
@@ -118,6 +98,22 @@ async def on_r2_disconnect() -> None:
     Just reply with disconnected as there is no permanent connection to the projector that needs to be closed
     """
     _LOG.info("Received disconnect event message from remote")
+
+    if config.Setup.get("setup_complete"):
+        _LOG.info("Stopping all attributes poller tasks")
+
+        tasks = ["mp_poller", "lt_poller"]
+        for task_name in tasks:
+            try:
+                poller_task, = [task for task in asyncio.all_tasks() if task.get_name() == task_name]
+                poller_task.cancel()
+                try:
+                    await poller_task
+                except asyncio.CancelledError:
+                    _LOG.debug("Stopped " + task_name + " task")
+            except ValueError:
+                _LOG.debug(task_name + " task is not running")
+
     await api.set_device_state(ucapi.DeviceStates.DISCONNECTED)
 
 
@@ -160,10 +156,19 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     _LOG.info("Received subscribe entities event for entity ids: " + str(entity_ids))
 
     config.Setup.set("standby", False)
+    ip = config.Setup.get("ip")
+    mp_entity_id = config.Setup.get("id")
+    rt_entity_id = config.Setup.get("rt-id")
+    lt_entity_id = config.Setup.get("lt-id")
 
     for entity_id in entity_ids:
         try:
-            await media_player.update_attributes(entity_id)
+            if entity_id == mp_entity_id:
+                await media_player.update_mp(entity_id, ip)
+            if entity_id == lt_entity_id:
+                await sensor.update_lt(entity_id, ip)
+            if entity_id == rt_entity_id:
+                await remote.update_rt(rt_entity_id, ip)
         except OSError as o:
             _LOG.critical(o)
         except Exception as e:
@@ -191,16 +196,19 @@ def setup_logger():
     logging.getLogger("ucapi.entities").setLevel(level)
     logging.getLogger("ucapi.entity").setLevel(level)
     logging.getLogger("driver").setLevel(level)
-    logging.getLogger("media_player").setLevel(level)
-    logging.getLogger("setup").setLevel(level)
     logging.getLogger("config").setLevel(level)
+    logging.getLogger("setup").setLevel(level)
+    logging.getLogger("projector").setLevel(level)
+    logging.getLogger("media_player").setLevel(level)
+    logging.getLogger("remote").setLevel(level)
+    logging.getLogger("sensor").setLevel(level)
 
 
 
 async def main():
     """Main function that gets logging from all sub modules and starts the driver"""
 
-    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and attributes poller interval
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and projector attributes poller interval
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
 
         logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
@@ -213,10 +221,10 @@ async def main():
         config.Setup.set("cfg_path", cfg_path)
         _LOG.info("The configuration is stored in " + cfg_path)
 
-        _LOG.info("Deactivating attributes poller to reduce battery consumption when running on the remote")
-        config.Setup.set("poller_interval", 0)
+        _LOG.info("Deactivating projector attributes poller to reduce battery consumption when running on the remote")
+        config.Setup.set("mp_poller_interval", 0)
     else:
-        logging.basicConfig(format="%(asctime)s | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        logging.basicConfig(format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
         setup_logger()
 
     _LOG.debug("Starting driver")

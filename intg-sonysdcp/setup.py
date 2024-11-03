@@ -14,6 +14,8 @@ import pysdcp
 import config
 import driver
 import media_player
+import sensor
+import remote
 
 _LOG = logging.getLogger(__name__)
 
@@ -112,25 +114,30 @@ async def handle_driver_setup(msg: ucapi.DriverSetupRequest,) -> ucapi.SetupActi
         return ucapi.SetupError()
 
     try:
-        entity_id = config.Setup.get("id")
-        entity_name = config.Setup.get("name")
+        mp_entity_id = config.Setup.get("id")
+        mp_entity_name = config.Setup.get("name")
+        rt_entity_id = "remote-"+mp_entity_id
+        config.Setup.set("rt-id", rt_entity_id)
+        rt_entity_name = mp_entity_name
+        config.Setup.set_lt_name_id(mp_entity_id, mp_entity_name)
+        lt_entity_id = config.Setup.get("lt-id")
+        lt_entity_name = config.Setup.get("lt-name")
     except ValueError as v:
         _LOG.error(v)
         return ucapi.SetupError()
 
-    _LOG.info("Add media player entity with id " + entity_id + " and name " + entity_name)
-    await media_player.add_mp(entity_id, entity_name)
+    await media_player.add_mp(mp_entity_id, mp_entity_name)
+    await media_player.create_mp_poller(mp_entity_id, ip)
 
-    poller_interval = config.Setup.get("poller_interval")
-    if poller_interval == 0:
-        _LOG.info("Attributes poller interval set to " + str(poller_interval) + ". Skip creation of attributes poller task")
-    else:
-        driver.loop.create_task(driver.attributes_poller(entity_id, poller_interval))
-        _LOG.debug("Created attributes poller task with an interval of " + str(poller_interval) + " seconds")
+    await remote.add_remote(rt_entity_id, rt_entity_name)
+
+    await sensor.add_lt_sensor(lt_entity_id, lt_entity_name)
+    await sensor.create_lt_poller(lt_entity_id, ip)
 
     config.Setup.set("setup_complete", True)
     _LOG.info("Setup complete")
     return ucapi.SetupComplete()
+
 
 
 

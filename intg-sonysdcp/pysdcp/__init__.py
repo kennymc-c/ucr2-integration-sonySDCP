@@ -272,6 +272,11 @@ class Projector:
         self._send_command(action=ACTIONS["SET"], command=COMMANDS["PICTURE_MUTING"],
                            data=PICTURE_MUTING["ON"] if on else PICTURE_MUTING["OFF"])
         return True
+    
+    def get_lamp_hours(self):
+        data = self._send_command(action=ACTIONS["GET"], command=COMMANDS["GET_STATUS_LAMP_TIMER"])
+        hours = "{:d}".format(data)
+        return hours
 
 
 if __name__ == '__main__':

@@ -9,7 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Changes in the next release_
 
-## [0.7.0-beta] - 2024-09-20
+## [0.8.0] - 2024-11-03
+
+### Added
+
+- Added a lamp timer sensor entity
+  - The sensor value will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes by default while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected
+- Added a remote entity
+  - Advanced button mappings compared to the media player entity (see [Default remote entity button mappings](/README.md#default-remote-entity-button-mappings)) and remote ui pages with all available commands. Both can be customized in the web configurator under Remotes/External
+  - Use command sequences in the activity editor instead of creating a macro for each sequence and map it to a button or add it to the ui grid i. All command names have to be in upper case and separated by a comma
+  - Support for repeat, delay and hold
+    - Hold just repeats the command continuously for the given hold time. There is no native hold function for the SDCP protocol as with some ir devices to activate additional functions
+- Added 3 new simple commands:
+  - INPUT_HDMI_1
+  - INPUT_HDMI_2
+  - MODE_HDR_TOGGLE (toggles between On and Off)
+
+## [0.7.0] - 2024-09-20
 
 ### Breaking changes
 
@@ -19,7 +35,7 @@ _Changes in the next release_
 
 ### Added
 
-- Add build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
+- Added build.yml Github action to automatically build a self-contained binary of the integration and create a release draft with the current driver version as a tag/name
 
 ### Changed
 

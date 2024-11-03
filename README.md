@@ -1,17 +1,80 @@
-# Sony Projector integration for Unfolded Circle Remote Devices
+# Sony Projector integration for Unfolded Circle Remote Devices <!-- omit in toc -->
 
-## ⚠️ Disclaimer ⚠️
+## ⚠️ Disclaimer ⚠️ <!-- omit in toc -->
 
 This software may contain bugs that could affect system stability. Please use it at your own risk!
-
-##
 
 Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to control Sony projectors that support the SDCP/PJ Talk protocol.
 
 Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
 and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
 
-### Supported commands
+## Table of Contents <!-- omit in toc -->
+
+- [Entities](#entities)
+  - [Planned features](#planned-features)
+- [Commands \& attributes](#commands--attributes)
+  - [Supported media player commands](#supported-media-player-commands)
+  - [Supported media player attributes](#supported-media-player-attributes)
+  - [Supported simple commands (media player \& remote entity)](#supported-simple-commands-media-player--remote-entity)
+  - [Supported remote entity commands](#supported-remote-entity-commands)
+  - [Default remote entity button mappings](#default-remote-entity-button-mappings)
+  - [Attributes poller](#attributes-poller)
+    - [Media player](#media-player)
+    - [Lamp timer sensor](#lamp-timer-sensor)
+- [Usage](#usage)
+  - [Limitations](#limitations)
+  - [Known supported projectors](#known-supported-projectors)
+  - [Projector Setup](#projector-setup)
+    - [Activate SDCP/PJTalk](#activate-sdcppjtalk)
+    - [Change SDAP Interval (optional)](#change-sdap-interval-optional)
+- [Installation](#installation)
+  - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
+    - [Limitations / Disclaimer](#limitations--disclaimer)
+      - [Missing firmware features](#missing-firmware-features)
+    - [Download integration driver](#download-integration-driver)
+    - [Install the custom integration driver on the remote](#install-the-custom-integration-driver-on-the-remote)
+  - [Run on a separate device as an external integration](#run-on-a-separate-device-as-an-external-integration)
+    - [Requirements](#requirements)
+    - [Bare metal/VM](#bare-metalvm)
+    - [Requirements](#requirements-1)
+      - [Start the integration](#start-the-integration)
+    - [Docker container](#docker-container)
+- [Build](#build)
+  - [Build distribution binary](#build-distribution-binary)
+    - [x86-64 Linux](#x86-64-linux)
+    - [aarch64 Linux / Mac](#aarch64-linux--mac)
+  - [Create tar.gz archive](#create-targz-archive)
+- [Versioning](#versioning)
+- [Changelog](#changelog)
+- [Contributions](#contributions)
+- [License](#license)
+
+## Entities
+
+- Media player
+  - Source select feature to choose the input from a list
+- Remote
+  - Pre-defined buttons mappings and ui pages with all available commands that can be customized in the web configurator
+  - Use command sequences in the activity editor instead of creating a macro for each sequence. All command names have to be in upper case and separated by a comma
+  - Support for repeat, delay and hold
+    - Hold just repeats the command continuously for the given hold time. There is no native hold function for the SDCP protocol as with some ir devices to activate additional functions
+- Sensor
+  - Lamp timer
+    - Lamp hours will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes (can be changed in config.py) while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected
+
+### Planned features
+
+- Picture position and advanced iris commands
+  - Needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control
+- Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
+- Power/error status sensor entity
+
+Additional smaller planned improvements are labeled with #TODO in the code
+
+## Commands & attributes
+
+### Supported media player commands
 
 - Turn On/Off/Toggle
 - Mute/Unmute/Toggle
@@ -22,29 +85,40 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
   - Opens the setup menu. Used instead of the menu feature because of the hard mapped home button when opening the entity from a profile page
 - Source Select
   - HDMI 1, HDMI 2
-- Simple Commands
-  - Calibration Presets*
-    - Cinema Film 1, Cinema Film 2, Reference, TV, Photo, Game, Bright Cinema, Bright TV, User
-  - Aspect Ratios*
-    - Normal, Stretch**, V Stretch, Ratio Squeeze, Zoom 1:85, Zoom 2:35
-  - Motionfow*
-    - Off, Smoth High, Smoth Low, Impulse\*\*\*, Combination\***, True Cinema
-  - HDR*
-    - On, Off, Auto
-  - 2D/3D Display Select**
-    - 2D, 3D, Auto
-  - 3D Format**
-    - Simulated 3D, Side-by-Side, Over-Under
-  - Lamp Control*
-    - High, Low
-  - Input Lag Reduction*
-    - On, Off
-  - Menu Position
-    - Bottom Left, Center
-  - Lens Control
-    - Lens Shift Up/Down/Left/Right
-    - Lens Focus Far/Near
-    - Lens Zoom Large/Small
+
+### Supported media player attributes
+
+- State (On, Off, Unknown)
+- Muted (True, False)
+- Source
+- Source List (HDMI 1, HDMI 2)
+
+### Supported simple commands (media player & remote entity)
+
+- Input HDMI 1 & 2
+  - Intended for the remote entity in addition to the source select feature of the media player entity
+- Calibration Presets*
+  - Cinema Film 1, Cinema Film 2, Reference, TV, Photo, Game, Bright Cinema, Bright TV, User
+- Aspect Ratios*
+  - Normal, Squeeze, Stretch**, V Stretch, Zoom 1:85, Zoom 2:35
+- Motionfow*
+  - Off, Smoth High, Smoth Low, Impulse\*\*\*, Combination\***, True Cinema
+- HDR*
+  - On, Off, Auto, Toggle
+- 2D/3D Display Select**
+  - 2D, 3D, Auto
+- 3D Format**
+  - Simulated 3D, Side-by-Side, Over-Under
+- Lamp Control*
+  - High, Low
+- Input Lag Reduction*
+  - On, Off
+- Menu Position
+  - Bottom Left, Center
+- Lens Control
+  - Lens Shift Up/Down/Left/Right
+  - Lens Focus Far/Near
+  - Lens Zoom Large/Small
 
 \* _Only works if a video signal is present at the input_ \
 \** _May not work work with all video signals. Please refer to Sony's user manual_ \
@@ -52,27 +126,58 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 
 If a command can't be processed or applied by the projector this will result in a bad request error on the remote. The response error message from the projector is shown in the integration log
 
-### Supported attributes
+### Supported remote entity commands
 
-- State (On, Off, Unknown)
-- Muted (True, False)
-- Source
-- Source List (HDMI 1, HDMI 2)
+- On, Off, Toggle
+- Send command
+  - Command names have to be in upper case and separated by a comma
+- Send command sequence
+  - All command names have to be in upper case and separated by a comma
 
-By default the integration checks the status of all attributes every 20 seconds. The interval can be changed in config.py. Set it to 0 to deactivate this function.
+### Default remote entity button mappings
 
-### Planned features
+_The default button mappings and ui pages can be customized in the web configurator under Remotes/External._
 
-- Picture position and advanced iris commands (needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control)
-- Additional sensor entity to show the lamp time
-- Additional remote entity to automatically map all commands to buttons and the ui grid
-- Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
+| Button                  | Short Press command | Long Press command |
+|-------------------------|---------------------|--------------------|
+| BACK                    | Cursor Left | |
+| HOME                    | Menu |         |
+| VOICE                   | Projector Info (Menu+Cursor Up) | Toggle HDR On/Off |
+| VOLUME_UP/DOWN          | Lens Zoom Large/Small | Lens Focus Far/Near |
+| MUTE                    | Toggle Picture Muting |         |
+| DPAD_UP/DOWN/LEFT/RIGHT | Cursor Up/Down/Left/Right | Lens Shift Up/Down/Left/Right |
+| DPAD_MIDDLE             | Cursor Enter |         |
+| GREEN                   |              | Mode Preset Cinema Film 1 |
+| YELLOW                  |              | Mode Preset Cinema Film 2 |
+| RED                     |              | Mode Preset Bright TV |
+| BLUE                    |              | Mode Preset Bright Cinema |
+| CHANNEL_UP/DOWN         | Input HDMI 1/2 |         |
+| PREV                    | Mode Preset Ref | Mode Preset Photo |
+| PLAY                    | Mode Preset Game |         |
+| NEXT                    | Mode Preset User | Mode Preset TV |
+| POWER                   | Power Toggle |         |
 
-Additional smaller planned improvements are labeled with #TODO in the code
+### Attributes poller
+
+#### Media player
+
+By default the integration checks the status of all media player entity attributes every 20 seconds while the remote is not in standby/sleep mode or disconnected from the integration. The interval can be changed in config.py. Set it to 0 to deactivate this function. When running on the remote as a custom integration the interval will be automatically set to 0 to reduce battery consumption and save cpu/memory usage.
+
+#### Lamp timer sensor
+
+The sensor value will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes by default while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected.
+
+## Usage
+
+### Limitations
+
+This integration supports one projector per integration instance. Multi device support is currently not planned for this integration but you could run the integration multiple times using different und unique driver IDs.
 
 ### Known supported projectors
 
-_According to pySDCP and/or personal testing._
+Usually all Sony projectors that support the PJTalk / SDCP protocol should be supported.
+
+The following models have been tested with either pySDCP or this integration by personal testing:
 
 - VPL-HW65ES
 - VPL-VW100
@@ -90,8 +195,6 @@ _According to pySDCP and/or personal testing._
 
 Please inform me if you have a projector that is not on this list and it works with pySDCP or this integration
 
-## Usage
-
 ### Projector Setup
 
 #### Activate SDCP/PJTalk
@@ -100,7 +203,7 @@ Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJT
 
 ![webinterface](webinterface.png)
 
-#### Optional: Change SDAP Interval
+#### Change SDAP Interval (optional)
 
 During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
 
@@ -110,9 +213,11 @@ During the initial setup the integration tries to query data from the projector 
 
 ### Run on the remote as a custom integration driver
 
-_⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks._
+#### Limitations / Disclaimer
 
-#### Missing firmware features
+⚠️ This feature is currently only available in beta firmware releases and requires version 1.9.2 or newer. Please keep in mind that due to the beta status there are missing firmware features that require workarounds (see below) and that changes in future beta updates may temporarily or permanently break the functionality of this integration as a custom integration. Please wait until custom integrations are available in stable firmware releases if you don't want to take these risks.
+
+##### Missing firmware features
 
 - The configuration file of custom integrations are not included in backups.
 - You currently can't update custom integrations. You need to delete the integration from the integrations menu first and then re-upload the new version. Do not edit any activity or macros that includes entities from this integration after you removed the integration and wait until the new version has been uploaded and installed. You also need to add re-add entities to the main pages after the update as they are automatically removed. An update function will probably be added once the custom integrations feature will be available in stable firmware releases.
@@ -121,7 +226,7 @@ _⚠️ This feature is currently only available in beta firmware releases and r
 
 Download the uc-intg-sonysdcp-x.x.x-aarch64.tar.gz archive in the assets section from the [latest release](https://github.com/kennymc-c/ucr2-integration-sonySDCP/releases/latest)
 
-#### Install custom integration driver on the remote
+#### Install the custom integration driver on the remote
 
 The custom integration driver installation is currently only possible via the Core API.
 
@@ -131,17 +236,22 @@ curl --location 'http://$IP/api/intg/install' \
 --form 'file=@"uc-intg-sonysdcp-$VERSION-aarch64.tar.gz"'
 ```
 
-There is also a Core API GUI available at https://[Remote-IP]/doc/core-rest/. Scroll down to POST intg/install and click on Try it out, choose a file and then click on Execute.
+There is also a Core API GUI available at https://_Remote-IP_/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
+
+Alternatively you can also use the inofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
 
 UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
 
 ### Run on a separate device as an external integration
 
+#### Requirements
+
+- Firmware 1.7.12 or newer to support simple commands and remote entities
+
 #### Bare metal/VM
 
-##### Requirements
+#### Requirements
 
-- Firmware 1.7.4 or newer to support simple commands
 - Python 3.11
 - Install Libraries:  
   (using a [virtual environment](https://docs.python.org/3/library/venv.html) is highly recommended)

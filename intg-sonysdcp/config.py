@@ -7,8 +7,8 @@ import ucapi
 
 _LOG = logging.getLogger(__name__)
 
-#TODO Integrate SDCP and SDAP port and PJTalk community as variables into the command assigner to replace the pySDCP default values
-#TODO Make cfg_path, SDCP & SDAP ports and PJTalk community user configurable in an advanced setup option
+#TODO Integrate SDCP and SDAP port and PJTalk community as variables into the command handlers to replace the pySDCP default values
+#TODO Make SDCP & SDAP ports and PJTalk community user configurable in an advanced setup option
 
 #Fixed variables
 SDCP_PORT = 53484 #Currently only used for port check during setup
@@ -16,27 +16,9 @@ SDAP_PORT = 53862 #Currently only used for port check during setup
 
 
 
-class MpDef:
-    """Media player entity definition class that includes the device class, features, attributes and options"""
-    device_class = ucapi.media_player.DeviceClasses.TV
-    features = [
-        ucapi.media_player.Features.ON_OFF,
-        ucapi.media_player.Features.TOGGLE,
-        ucapi.media_player.Features.MUTE,
-        ucapi.media_player.Features.UNMUTE,
-        ucapi.media_player.Features.MUTE_TOGGLE,
-        ucapi.media_player.Features.DPAD,
-        ucapi.media_player.Features.HOME,
-        ucapi.media_player.Features.SELECT_SOURCE
-        ]
-    attributes = {
-        ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN,
-        ucapi.media_player.Attributes.MUTED: False,
-        ucapi.media_player.Attributes.SOURCE: "",
-        ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
-        }
-    options = {
-        ucapi.media_player.Options.SIMPLE_COMMANDS: [
+simple_commands = [
+            "INPUT_HDMI_1",
+            "INPUT_HDMI_2",
             "MODE_PRESET_REF",
             "MODE_PRESET_USER",
             "MODE_PRESET_TV",
@@ -61,6 +43,7 @@ class MpDef:
             "MODE_HDR_ON",
             "MODE_HDR_OFF",
             "MODE_HDR_AUTO",
+            "MODE_HDR_TOGGLE",
             "MODE_2D_3D_SELECT_AUTO",
             "MODE_2D_3D_SELECT_3D",
             "MODE_2D_3D_SELECT_2D",
@@ -82,6 +65,56 @@ class MpDef:
             "LENS_ZOOM_LARGE",
             "LENS_ZOOM_SMALL",
             ]
+
+
+
+class MpDef:
+    """Media player entity definition class that includes the device class, features, attributes and options"""
+    device_class = ucapi.media_player.DeviceClasses.TV
+    features = [
+        ucapi.media_player.Features.ON_OFF,
+        ucapi.media_player.Features.TOGGLE,
+        ucapi.media_player.Features.MUTE,
+        ucapi.media_player.Features.UNMUTE,
+        ucapi.media_player.Features.MUTE_TOGGLE,
+        ucapi.media_player.Features.DPAD,
+        ucapi.media_player.Features.HOME,
+        ucapi.media_player.Features.SELECT_SOURCE
+        ]
+    attributes = {
+        ucapi.media_player.Attributes.STATE: ucapi.media_player.States.UNKNOWN,
+        ucapi.media_player.Attributes.MUTED: False,
+        ucapi.media_player.Attributes.SOURCE: "",
+        ucapi.media_player.Attributes.SOURCE_LIST: ["HDMI 1", "HDMI 2"]
+        }
+    options = {
+        ucapi.media_player.Options.SIMPLE_COMMANDS: simple_commands
+        }
+
+
+
+class RemoteDef:
+    """Remote entity definition class that includes the features, attributes and simple commands"""
+    features = [
+        ucapi.remote.Features.ON_OFF,
+        ucapi.remote.Features.TOGGLE,
+        ]
+    attributes = {
+        ucapi.remote.Attributes.STATE: ucapi.remote.States.UNKNOWN
+        }
+    simple_commands = simple_commands
+
+
+
+class LTSensorDef:
+    """Lamp timer sensor entity definition class that includes the device class, attributes and options"""
+    device_class = ucapi.sensor.DeviceClasses.CUSTOM
+    attributes = {
+        ucapi.sensor.Attributes.STATE: ucapi.sensor.States.ON,
+        ucapi.sensor.Attributes.UNIT: "h"
+        }
+    options = {
+        ucapi.sensor.Options.CUSTOM_UNIT: "h"
         }
 
 
@@ -94,14 +127,18 @@ class Setup:
     "ip": "",
     "id": "",
     "name": "",
+    "rt-id": "",
+    "lt-id": "",
+    "lt-name":"",
     "setup_complete": False,
     "setup_reconfigure": False,
     "standby": False,
     "bundle_mode": False,
-    "poller_interval": 20, #Use 0 to deactivate; will be automatically set to 0 when running on the remote (bundle_mode: True)
+    "mp_poller_interval": 20, #Use 0 to deactivate; will be automatically set to 0 when running on the remote (bundle_mode: True)
+    "lt_poller_interval": 1800,
     "cfg_path": "config.json"
     }
-    __setters = ["ip", "id", "name", "setup_complete", "setup_reconfigure", "standby", "bundle_mode", "poller_interval", "cfg_path"]
+    __setters = ["ip", "id", "name", "rt-id", "lt-id", "lt-name", "setup_complete", "setup_reconfigure", "standby", "bundle_mode", "mp_poller_interval", "lt_poller_interval", "cfg_path"]
     __storers = ["setup_complete", "ip", "id", "name"] #Skip runtime only related keys in config file
 
 
@@ -111,6 +148,21 @@ class Setup:
         if Setup.__conf[key] == "":
             raise ValueError("Got empty value for key " + key + " from runtime storage")
         return Setup.__conf[key]
+    
+    @staticmethod
+    def set_lt_name_id(mp_entity_id: str, mp_entity_name: str):
+        """Generate lamp timer sensor entity id and name and store it"""
+        _LOG.info("Generate lamp timer sensor entity id and name")
+        lt_entity_id = "lamptimer-"+mp_entity_id
+        lt_entity_name = { 
+            "en": "Lamp Timer "+mp_entity_name,
+            "de": "Lampen-Timer "+mp_entity_name
+        }
+        try:
+            Setup.set("lt-id", lt_entity_id)
+            Setup.set("lt-name", lt_entity_name)
+        except ValueError as v:
+            raise ValueError(v) from v
 
     @staticmethod
     def set(key, value):
