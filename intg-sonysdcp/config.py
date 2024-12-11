@@ -7,13 +7,6 @@ import ucapi
 
 _LOG = logging.getLogger(__name__)
 
-#TODO Integrate SDCP and SDAP port and PJTalk community as variables into the command handlers to replace the pySDCP default values
-#TODO Make SDCP & SDAP ports and PJTalk community user configurable in an advanced setup option
-
-#Fixed variables
-SDCP_PORT = 53484 #Currently only used for port check during setup
-SDAP_PORT = 53862 #Currently only used for port check during setup
-
 
 
 simple_commands = [
@@ -135,11 +128,16 @@ class Setup:
     "standby": False,
     "bundle_mode": False,
     "mp_poller_interval": 20, #Use 0 to deactivate; will be automatically set to 0 when running on the remote (bundle_mode: True)
-    "lt_poller_interval": 1800,
+    "lt_poller_interval": 1800, #Use 0 to deactivate
+    "sdcp_port": 53484,
+    "sdap_port": 53862,
+    "pjtalk_community": "SONY",
     "cfg_path": "config.json"
     }
-    __setters = ["ip", "id", "name", "rt-id", "lt-id", "lt-name", "setup_complete", "setup_reconfigure", "standby", "bundle_mode", "mp_poller_interval", "lt_poller_interval", "cfg_path"]
-    __storers = ["setup_complete", "ip", "id", "name"] #Skip runtime only related keys in config file
+    __setters = ["ip", "id", "name", "rt-id", "lt-id", "lt-name", "setup_complete", "setup_reconfigure", "standby", "bundle_mode",\
+                 "mp_poller_interval", "lt_poller_interval", "cfg_path", "sdcp_port", "sdap_port", "pjtalk_community"]
+    __storers = ["setup_complete", "ip", "id", "name", "sdcp_port", "sdap_port", "pjtalk_community", \
+                 "mp_poller_interval", "lt_poller_interval"] #Skip runtime only related keys in config file
 
 
     @staticmethod
@@ -148,13 +146,13 @@ class Setup:
         if Setup.__conf[key] == "":
             raise ValueError("Got empty value for key " + key + " from runtime storage")
         return Setup.__conf[key]
-    
+
     @staticmethod
     def set_lt_name_id(mp_entity_id: str, mp_entity_name: str):
         """Generate lamp timer sensor entity id and name and store it"""
         _LOG.info("Generate lamp timer sensor entity id and name")
         lt_entity_id = "lamptimer-"+mp_entity_id
-        lt_entity_name = { 
+        lt_entity_name = {
             "en": "Lamp Timer "+mp_entity_name,
             "de": "Lampen-Timer "+mp_entity_name
         }
@@ -165,7 +163,7 @@ class Setup:
             raise ValueError(v) from v
 
     @staticmethod
-    def set(key, value):
+    def set(key, value, store:bool=True):
         """Set and store a value for the specified key into the runtime storage and config file.
         Storing setup_complete flag during reconfiguration will be ignored"""
         if key in Setup.__setters:
@@ -175,37 +173,40 @@ class Setup:
                 Setup.__conf[key] = value
                 _LOG.debug("Stored " + key + ": " + str(value) + " into runtime storage")
 
-                #Store key/value pair in config file
-                if key in Setup.__storers:
-                    jsondata = {key: value}
-                    if os.path.isfile(Setup.__conf["cfg_path"]):
-                        try:
-                            with open(Setup.__conf["cfg_path"], "r+", encoding="utf-8") as f:
-                                l = json.load(f)
-                                l.update(jsondata)
-                                f.seek(0)
-                                f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true)
-                                json.dump(l, f)
-                                _LOG.debug("Stored " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"])
-                        except OSError as o:
-                            raise OSError(o) from o
-                        except Exception as e:
-                            raise Exception("Error while storing " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"]) from e
-
-                    #Create config file first if it doesn't exists yet
-                    else:
-                        #Skip storing setup_complete if no config files exists
-                        if key != "setup_complete":
+                if not store:
+                    _LOG.debug("Store set to False. Value will not be stored in config file this time")
+                else:
+                    #Store key/value pair in config file
+                    if key in Setup.__storers:
+                        jsondata = {key: value}
+                        if os.path.isfile(Setup.__conf["cfg_path"]):
                             try:
-                                with open(Setup.__conf["cfg_path"], "w", encoding="utf-8") as f:
-                                    json.dump(jsondata, f)
-                                _LOG.debug("Stored " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"])
+                                with open(Setup.__conf["cfg_path"], "r+", encoding="utf-8") as f:
+                                    l = json.load(f)
+                                    l.update(jsondata)
+                                    f.seek(0)
+                                    f.truncate() #Needed when the new value has less characters than the old value (e.g. false to true)
+                                    json.dump(l, f)
+                                    _LOG.debug("Stored " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"])
                             except OSError as o:
                                 raise OSError(o) from o
                             except Exception as e:
                                 raise Exception("Error while storing " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"]) from e
-                else:
-                    _LOG.debug(key + " not found in __storers because it should not be stored in the config file")
+
+                        #Create config file first if it doesn't exists yet
+                        else:
+                            #Skip storing setup_complete if no config files exists
+                            if key != "setup_complete":
+                                try:
+                                    with open(Setup.__conf["cfg_path"], "w", encoding="utf-8") as f:
+                                        json.dump(jsondata, f)
+                                    _LOG.debug("Stored " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"])
+                                except OSError as o:
+                                    raise OSError(o) from o
+                                except Exception as e:
+                                    raise Exception("Error while storing " + key + ": " + str(value) + " into " + Setup.__conf["cfg_path"]) from e
+                    else:
+                        _LOG.debug(key + " not found in __storers because it should not be stored in the config file")
         else:
             raise NameError(key + " not found in __setters because it should not be changed")
 
@@ -240,6 +241,28 @@ class Setup:
                     _LOG.debug("Loaded id and name into runtime storage from " + Setup.__conf["cfg_path"])
                 else:
                     _LOG.debug("Skip loading id and name as there are not yet stored in the config file")
+
+                if "sdcp_port" in configfile:
+                    Setup.__conf["sdcp_port"] = configfile["sdcp_port"]
+                    _LOG.debug("Loaded SDCP port " + str(configfile["sdcp_port"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
+
+                if "sdap_port" in configfile:
+                    Setup.__conf["sdap_port"] = configfile["sdap_port"]
+                    _LOG.debug("Loaded SDAP port " + str(configfile["sdap_port"]) + " into runtime storage from " + Setup.__conf["cfg_path"])
+
+                if "pjtalk_community" in configfile:
+                    Setup.__conf["pjtalk_community"] = configfile["pjtalk_community"]
+                    _LOG.debug("Loaded PJ Talk community \"" + str(configfile["pjtalk_community"]) + "\" into runtime storage from " + Setup.__conf["cfg_path"])
+
+                if "mp_poller_interval" in configfile:
+                    Setup.__conf["mp_poller_interval"] = configfile["mp_poller_interval"]
+                    _LOG.debug("Loaded power/mute/input poller interval of " + str(configfile["mp_poller_interval"]) + " seconds into runtime storage \
+                               from " + Setup.__conf["cfg_path"])
+
+                if "lt_poller_interval" in configfile:
+                    Setup.__conf["lt_poller_interval"] = configfile["lt_poller_interval"]
+                    _LOG.debug("Loaded lamp timer poller interval of " + str(configfile["lt_poller_interval"]) + " seconds into runtime storage \
+                               from " + Setup.__conf["cfg_path"])
 
         else:
             _LOG.info(Setup.__conf["cfg_path"] + " does not exist (yet). Please start the setup process")

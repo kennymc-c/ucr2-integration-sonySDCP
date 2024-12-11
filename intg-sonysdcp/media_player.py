@@ -34,7 +34,7 @@ async def mp_cmd_handler(entity: ucapi.MediaPlayer, cmd_id: str, _params: dict[s
         return ucapi.StatusCodes.SERVER_ERROR
 
     try:
-        if _params is None:
+        if not _params:
             _LOG.info(f"Received {cmd_id} command for {entity.id}")
             await projector.send_cmd(entity.id, ip, cmd_id)
         else:
@@ -71,16 +71,49 @@ async def add_mp(ent_id: str, name: str):
 
 
 
-async def create_mp_poller(ent_id: str, ip: str):
-    """Creates a task to regularly poll attributes from the projector"""
+class MpPollerController:
+    """Creates a task to regularly poll power/mute/input attributes from the projector"""
 
-    mp_poller_interval = config.Setup.get("mp_poller_interval")
+    @staticmethod
+    async def start(ent_id: str, ip: str):
+        """Starts the mp_poller task. If the task is already running it will be stopped and restarted"""
+        mp_poller_interval = config.Setup.get("mp_poller_interval")
+        if mp_poller_interval == 0:
+            _LOG.debug("Power/mute/input poller interval set to " + str(mp_poller_interval))
+            try:
+                poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "mp_poller"]
+                poller_task.cancel()
+                try:
+                    await poller_task
+                except driver.asyncio.CancelledError:
+                    _LOG.info("Stopped running power/mute/input poller task")
+            except ValueError:
+                _LOG.info("The power/mute/input poller task will not be started")
+        else:
+            try:
+                poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "mp_poller"]
+                poller_task.cancel()
+                try:
+                    await poller_task
+                except driver.asyncio.CancelledError:
+                    driver.loop.create_task(mp_poller(ent_id, mp_poller_interval, ip), name="mp_poller")
+                    _LOG.info("Restarted power/mute/input poller task with an interval of " + str(mp_poller_interval) + " seconds")
+            except ValueError:
+                driver.loop.create_task(mp_poller(ent_id, mp_poller_interval, ip), name="mp_poller")
+                _LOG.info("Started power/mute/input poller task with an interval of " + str(mp_poller_interval) + " seconds")
 
-    if mp_poller_interval == 0:
-        _LOG.info("Projector attributes poller interval set to " + str(mp_poller_interval) + ". Task will not be started")
-    else:
-        driver.loop.create_task(mp_poller(ent_id, mp_poller_interval, ip), name="mp_poller")
-        _LOG.debug("Started projector attributes poller task with an interval of " + str(mp_poller_interval) + " seconds")
+    @staticmethod
+    async def stop():
+        """Stops the mp_poller task"""
+        try:
+            poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "mp_poller"]
+            poller_task.cancel()
+            try:
+                await poller_task
+            except driver.asyncio.CancelledError:
+                _LOG.debug("Stopped power/mute/input poller task")
+        except ValueError:
+            _LOG.debug("Power/mute/input poller task is not running")
 
 
 

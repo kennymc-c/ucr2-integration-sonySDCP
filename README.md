@@ -28,6 +28,7 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
   - [Projector Setup](#projector-setup)
     - [Activate SDCP/PJTalk](#activate-sdcppjtalk)
     - [Change SDAP Interval (optional)](#change-sdap-interval-optional)
+  - [Manual advanced setup](#manual-advanced-setup)
 - [Installation](#installation)
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
     - [Limitations / Disclaimer](#limitations--disclaimer)
@@ -67,7 +68,6 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 
 - Picture position and advanced iris commands
   - Needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control
-- Configure poller interval, SDCP & SDAP ports and PJTalk community in an advanced setup
 - Power/error status sensor entity
 
 Additional smaller planned improvements are labeled with #TODO in the code
@@ -161,11 +161,11 @@ _The default button mappings and ui pages can be customized in the web configura
 
 #### Media player
 
-By default the integration checks the status of all media player entity attributes every 20 seconds while the remote is not in standby/sleep mode or disconnected from the integration. The interval can be changed in config.py. Set it to 0 to deactivate this function. When running on the remote as a custom integration the interval will be automatically set to 0 to reduce battery consumption and save cpu/memory usage.
+By default the integration checks the status of all media player entity attributes every 20 seconds while the remote is not in standby/sleep mode or disconnected from the integration. The interval can be changed in the manual advanced setup. Set it to 0 to deactivate this function. When running on the remote as a custom integration the interval will be automatically set to 0 to reduce battery consumption and save cpu/memory usage.
 
 #### Lamp timer sensor
 
-The sensor value will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes by default while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected.
+The sensor value will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes by default while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected. The interval can be changed in the manual advanced setup.
 
 ## Usage
 
@@ -208,6 +208,10 @@ Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJT
 During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
 
 ![advertisement](advertisement.png)
+
+### Manual advanced setup
+
+If you have set the projector to use different pj talk ports or community than the standard values, you need to use the manual advanced setup option. Here you can change the ip address, sdcp/sdap port, pj talk community and the interval of both poller intervals. Please note that when running this integration on the remote the power/mute/input poller interval is always set to 0 to deactivate this poller in order to reduce battery consumption and save cpu/memory usage.
 
 ## Installation
 

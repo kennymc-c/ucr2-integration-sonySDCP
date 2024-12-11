@@ -5,8 +5,9 @@
 import logging
 
 import ucapi
-import pysdcp
-from pysdcp.protocol import *
+
+import pysdcp_extended as pysdcp
+from pysdcp_extended.protocol import *
 
 import config
 import driver
@@ -16,12 +17,50 @@ _LOG = logging.getLogger(__name__)
 
 
 
+def projector(ip):
+    """Create the projector object. Use custom ports and community if they differ from the projectors default values"""
+    sdcp_port = config.Setup.get("sdcp_port")
+    sdap_port = config.Setup.get("sdap_port")
+    pjtalk_community = config.Setup.get("pjtalk_community")
+
+    if ip == "":
+        ip = None
+    if sdcp_port == 53484:
+        sdcp_port = None
+    if sdap_port == 53862:
+        sdap_port = None
+    if pjtalk_community == "SONY":
+        pjtalk_community = None
+
+    attr = {"ip": ip, "tcp_port": sdcp_port, "udp_port": sdap_port, "community": pjtalk_community}
+
+    # Only include attributes that are not None (non default values) when creating the projector object
+    valid_attributes = {key: value for key, value in attr.items() if value is not None}
+
+    return pysdcp.Projector(**valid_attributes)
+
+
+
+def get_pjinfo(ip: str):
+    """Get projector information and return them"""
+    try:
+        pjinfo = projector(ip).get_pjinfo()
+    except Exception as e:
+        raise Exception(e) from e
+    return pjinfo
+
+def get_lamp_hours(ip: str):
+    """Get the lamp hours from the projector"""
+    try:
+        hours = projector(ip).get_lamp_hours()
+        return hours
+    except (Exception, ConnectionError) as e:
+        raise Exception(e) from e
+
 def get_attr_power(ip: str):
     """Get the current power state from the projector and return the corresponding ucapi power state attribute"""
-    projector = pysdcp.Projector(ip)
-
     try:
-        if projector.get_power():
+        if projector(ip).get_power():
             return {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.ON}
         return {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF}
     except (Exception, ConnectionError) as e:
@@ -29,9 +68,8 @@ def get_attr_power(ip: str):
 
 def get_attr_muted(ip: str):
     """Get the current muted state from the projector and return either False or True"""
-    projector = pysdcp.Projector(ip)
     try:
-        if projector.get_muting():
+        if projector(ip).get_muting():
             return True
         else:
             return False
@@ -40,9 +78,8 @@ def get_attr_muted(ip: str):
 
 def get_attr_source(ip: str):
     """Get the current input source from the projector and return it as a string"""
-    projector = pysdcp.Projector(ip)
     try:
-        return projector.get_input()
+        return projector(ip).get_input()
     except (Exception, ConnectionError) as e:
         raise Exception(e) from e
 
@@ -51,7 +88,7 @@ def get_attr_source(ip: str):
 async def send_cmd(entity_id: str, ip: str, cmd_name:str, params = None):
     """Send a command to the projector and raise an exception if it fails"""
 
-    projector_pysdcp = pysdcp.Projector(ip)
+    projector_pysdcp = projector(ip)
     mp_id = config.Setup.get("id")
     rt_id = config.Setup.get("rt-id")
     lt_id = config.Setup.get("lt-id")
@@ -61,6 +98,8 @@ async def send_cmd(entity_id: str, ip: str, cmd_name:str, params = None):
             _LOG.error("Error while executing the command: " + cmd_name)
             raise Exception(msg)
         _LOG.error(msg)
+        _LOG.info("Please check if the projector is reachable from the network where the integration is running. \
+Also make sure if the sdcp port and/or pj talk community haven been changed in the projector")
         raise Exception(msg)
 
     match cmd_name:

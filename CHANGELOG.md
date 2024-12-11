@@ -5,9 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.0] - 2024-12-11
 
-_Changes in the next release_
+### Breaking changes
+
+- All modified pySDCP files have been moved to a separate python package called [pySDCP-extended](https://pypi.org/project/pysdcp-extended/)
+  - Existing users running as an external integration need to update their requirements: ```pip3 install -r requirements.txt```
+
+### Added
+
+- Added a manual advanced setup option to change SDCP/SDAP ports, the PJ talk community and both poller intervals
 
 ## [0.8.0] - 2024-11-03
 

@@ -9,7 +9,6 @@ import time
 
 import ucapi
 import ucapi.ui
-from pysdcp.protocol import *
 
 import driver
 import config
@@ -55,7 +54,7 @@ async def remote_cmd_handler(
     :return: status of the command
     """
 
-    if params is None:
+    if not params:
         _LOG.info(f"Received {cmd_id} command for {entity.id}")
     else:
         _LOG.info(f"Received {cmd_id} command with parameter {params} for {entity.id}")

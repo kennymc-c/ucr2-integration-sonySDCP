@@ -5,11 +5,10 @@
 import logging
 
 import ucapi
-import pysdcp
-from pysdcp.protocol import *
 
 import config
 import driver
+import projector
 
 _LOG = logging.getLogger(__name__)
 
@@ -35,16 +34,53 @@ async def add_lt_sensor(ent_id: str, name: str):
 
 
 
-async def create_lt_poller(ent_id: str, ip: str):
-    """Creates a lamp timer poller task"""
+class LtPollerController:
+    """Creates a task to regularly poll lamp times from the projector"""
 
-    lt_poller_interval = config.Setup.get("lt_poller_interval")
-    driver.loop.create_task(lt_poller(ent_id, lt_poller_interval, ip), name="lt_poller")
-    _LOG.debug("Started lamp timer poller task with an interval of " + str(lt_poller_interval) + " seconds")
+    @staticmethod
+    async def start(ent_id: str, ip: str):
+        """Starts the lt_poller task. If the task is already running it will be stopped and restarted"""
+        lt_poller_interval = config.Setup.get("lt_poller_interval")
+        if lt_poller_interval == 0:
+            _LOG.debug("Lamp hours poller interval set to " + str(lt_poller_interval))
+            try:
+                poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "lt_poller"]
+                poller_task.cancel()
+                try:
+                    await poller_task
+                except driver.asyncio.CancelledError:
+                    _LOG.info("Stopped running lamp hours poller task")
+            except ValueError:
+                _LOG.info("The lamp hours poller task will not be started")
+        else:
+            try:
+                poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "lt_poller"]
+                poller_task.cancel()
+                try:
+                    await poller_task
+                except driver.asyncio.CancelledError:
+                    driver.loop.create_task(lt_poller(ent_id, lt_poller_interval, ip), name="lt_poller")
+                    _LOG.info("Restarted lamp hours poller task with an interval of " + str(lt_poller_interval) + " seconds")
+            except ValueError:
+                driver.loop.create_task(lt_poller(ent_id, lt_poller_interval, ip), name="lt_poller")
+                _LOG.info("Started lamp hours poller task with an interval of " + str(lt_poller_interval) + " seconds")
+
+    @staticmethod
+    async def stop():
+        """Stops the lt_poller task"""
+        try:
+            poller_task, = [task for task in driver.asyncio.all_tasks() if task.get_name() == "lt_poller"]
+            poller_task.cancel()
+            try:
+                await poller_task
+            except driver.asyncio.CancelledError:
+                _LOG.debug("Stopped lamp hours poller task")
+        except ValueError:
+            _LOG.debug("Lamp hours poller task is not running")
 
 
 
-async def lt_poller(entity_id: str, interval: int, ip: str) -> None:
+async def lt_poller(entity_id: str, interval:int, ip: str) -> None:
     """Projector lamp timer poller task. Runs only when the projector is powered on"""
     while True:
         await driver.asyncio.sleep(interval)
@@ -53,8 +89,8 @@ async def lt_poller(entity_id: str, interval: int, ip: str) -> None:
         if config.Setup.get("standby"):
             continue
         try:
-            projector = pysdcp.Projector(ip)
-            if not projector.get_power():
+            projector_power = projector.get_attr_power(ip)
+            if projector_power == {ucapi.media_player.Attributes.STATE: ucapi.media_player.States.OFF}:
                 _LOG.debug("Skip updating lamp timer. Projector is powered off")
                 continue
         except ConnectionError:
@@ -68,23 +104,11 @@ async def lt_poller(entity_id: str, interval: int, ip: str) -> None:
 
 
 
-def get_lamp_hours(ip: str):
-    """Get the lamp hours from the projector"""
-    projector = pysdcp.Projector(ip)
-    try:
-        hours = projector.get_lamp_hours()
-        return hours
-    except (Exception, ConnectionError) as e:
-        _LOG.error(e)
-
-
-
 async def update_lt(entity_id: str, ip: str):
     """Update lamp timer sensor. Compare retrieved lamp hours with the last sensor value from the remote and update it if necessary"""
-
     try:
         #TODO #WAIT Remove h string from value when the remote ui actually shows the unit
-        current_value = get_lamp_hours(ip)+" h"
+        current_value = projector.get_lamp_hours(ip)+" h"
     except Exception as e:
         _LOG.warning("Can't get lamp hours from projector. Use empty sensor value")
         current_value = ""
@@ -124,5 +148,5 @@ async def update_lt(entity_id: str, ip: str):
 
         if not api_update_attributes:
             raise Exception("Sensor entity " + entity_id + " not found. Please make sure it's added as a configured entity on the remote")
-      
+
         _LOG.info("Updated lamp timer sensor value to " + current_value)

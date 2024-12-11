@@ -9,7 +9,6 @@ import logging
 import logging.handlers
 
 import ucapi
-from pysdcp.protocol import *
 
 import config
 import setup
@@ -85,8 +84,8 @@ async def on_r2_connect() -> None:
         except ValueError as v:
             _LOG.error(v)
 
-        await media_player.create_mp_poller(mp_entity_id, ip)
-        await sensor.create_lt_poller(lt_entity_id, ip)
+        await media_player.MpPollerController.start(mp_entity_id, ip)
+        await sensor.LtPollerController.start(lt_entity_id, ip)
 
 
 
@@ -101,18 +100,8 @@ async def on_r2_disconnect() -> None:
 
     if config.Setup.get("setup_complete"):
         _LOG.info("Stopping all attributes poller tasks")
-
-        tasks = ["mp_poller", "lt_poller"]
-        for task_name in tasks:
-            try:
-                poller_task, = [task for task in asyncio.all_tasks() if task.get_name() == task_name]
-                poller_task.cancel()
-                try:
-                    await poller_task
-                except asyncio.CancelledError:
-                    _LOG.debug("Stopped " + task_name + " task")
-            except ValueError:
-                _LOG.debug(task_name + " task is not running")
+        await media_player.MpPollerController.stop()
+        await sensor.LtPollerController.stop()
 
     await api.set_device_state(ucapi.DeviceStates.DISCONNECTED)
 
@@ -208,7 +197,7 @@ def setup_logger():
 async def main():
     """Main function that gets logging from all sub modules and starts the driver"""
 
-    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and projector attributes poller interval
+    #Check if integration runs in a PyInstaller bundle on the remote and adjust the logging format, config file path and disable power/mute/input poller task
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
 
         logging.basicConfig(format="%(name)-14s %(levelname)-8s %(message)s")
@@ -221,16 +210,14 @@ async def main():
         config.Setup.set("cfg_path", cfg_path)
         _LOG.info("The configuration is stored in " + cfg_path)
 
-        _LOG.info("Deactivating projector attributes poller to reduce battery consumption when running on the remote")
-        config.Setup.set("mp_poller_interval", 0)
+        _LOG.info("Deactivating power/mute/input poller to reduce battery consumption when running on the remote")
+        _LOG.info("The poller task may still be activated afterwards if a custom interval has been set in the manual advanced setup")
+        config.Setup.set("mp_poller_interval", 0, False) #Using False to prevent the config file from being created before first time setup
     else:
         logging.basicConfig(format="%(asctime)s.%(msecs)03d | %(levelname)-8s | %(name)-14s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
         setup_logger()
 
     _LOG.debug("Starting driver")
-
-    #TODO #WAIT Remove all pySDCP files and add pySDCP to requirements.txt when upstream PR has been merged:
-    #https://github.com/Galala7/pySDCP/pull/5
 
     await setup.init()
     await startcheck()
