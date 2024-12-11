@@ -35,6 +35,7 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
       - [Missing firmware features](#missing-firmware-features)
     - [Download integration driver](#download-integration-driver)
     - [Install the custom integration driver on the remote](#install-the-custom-integration-driver-on-the-remote)
+      - [Upload via Core API or 3rd party tools](#upload-via-core-api-or-3rd-party-tools)
   - [Run on a separate device as an external integration](#run-on-a-separate-device-as-an-external-integration)
     - [Requirements](#requirements)
     - [Bare metal/VM](#bare-metalvm)
@@ -232,7 +233,9 @@ Download the uc-intg-sonysdcp-x.x.x-aarch64.tar.gz archive in the assets section
 
 #### Install the custom integration driver on the remote
 
-The custom integration driver installation is currently only possible via the Core API.
+Since firmware version 2.2.0 you can upload custom integrations in the web configurator. Go to integrations, click on install custom and choose the downloaded tar.gz file
+
+##### Upload via Core API or 3rd party tools
 
 ```shell
 curl --location 'http://$IP/api/intg/install' \
@@ -243,8 +246,6 @@ curl --location 'http://$IP/api/intg/install' \
 There is also a Core API GUI available at https://_Remote-IP_/doc/core-rest. Click on Authorize to log in (username: web-configurator, password: your PIN), scroll down to POST intg/install, click on Try it out, choose a file and then click on Execute.
 
 Alternatively you can also use the inofficial [UC Remote Toolkit](https://github.com/albaintor/UC-Remote-Two-Toolkit)
-
-UC plans to integrate the upload function to the web configurator once they get enough positive feedback from developers (and users). The current status can be tracked in this issue: [#79](https://github.com/unfoldedcircle/feature-and-bug-tracker/issues/79).
 
 ### Run on a separate device as an external integration
 
