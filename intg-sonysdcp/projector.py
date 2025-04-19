@@ -344,6 +344,16 @@ Also make sure if the sdcp port and/or pj talk community haven been changed in t
                 cmd_error(e)
 
         case \
+            "MODE_ADVANCED_IRIS_OFF" | \
+            "MODE_ADVANCED_IRIS_FULL" | \
+            "MODE_ADVANCED_IRIS_LIMITED":
+            preset = cmd_name.replace("MODE_ADVANCED_IRIS_", "")
+            try:
+                projector_pysdcp._send_command(action=ACTIONS["SET"], command=COMMANDS["ADVANCED_IRIS"], data=ADVANCED_IRIS[preset])
+            except (Exception, ConnectionError) as e:
+                cmd_error(e)
+
+        case \
             "LAMP_CONTROL_LOW" | \
             "LAMP_CONTROL_HIGH":
             preset = cmd_name.replace("LAMP_CONTROL_", "")
@@ -367,6 +377,20 @@ Also make sure if the sdcp port and/or pj talk community haven been changed in t
             preset = cmd_name.replace("MENU_POSITION_", "")
             try:
                 projector_pysdcp._send_command(action=ACTIONS["SET"], command=COMMANDS["MENU_POSITION"], data=MENU_POSITIONS[preset])
+            except (Exception, ConnectionError) as e:
+                cmd_error(e)
+
+        case \
+            "MODE_PICTURE_POSITION_1_85" | \
+            "MODE_PICTURE_POSITION_2_35" | \
+            "MODE_PICTURE_POSITION_CUSTOM_1" | \
+            "MODE_PICTURE_POSITION_CUSTOM_2" | \
+            "MODE_PICTURE_POSITION_CUSTOM_3" | \
+            "MODE_PICTURE_POSITION_CUSTOM_4" | \
+            "MODE_PICTURE_POSITION_CUSTOM_5":
+            preset = cmd_name.replace("MODE_PICTURE_POSITION_", "")
+            try:
+                projector_pysdcp._send_command(action=ACTIONS["SET"], command=COMMANDS["PICTURE_POSITION"], data=PICTURE_POSITIONS[preset])
             except (Exception, ConnectionError) as e:
                 cmd_error(e)
 

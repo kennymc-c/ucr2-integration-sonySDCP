@@ -1,18 +1,23 @@
 # Sony Projector integration for Unfolded Circle Remote Devices <!-- omit in toc -->
 
-## ⚠️ Disclaimer ⚠️ <!-- omit in toc -->
+## ⚠️ Deprecation Warning ⚠️ <!-- omit in toc -->
 
-This software may contain bugs that could affect system stability. Please use it at your own risk!
+**This integration is deprecated and should only be used for models that are released before 2016 and don't support the newer ADCP protocol. Models that have been released after that should use the [Sony ADCP integration](https://github.com/kennymc-c/ucr-integration-sonyADCP)**
 
 Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to control Sony projectors that support the SDCP/PJ Talk protocol.
 
-Using [uc-integration-api](https://github.com/aitatoi/integration-python-library)
-and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDCP) that is included in this repository.
+Using [uc-integration-api](https://github.com/aitatoi/integration-python-library) and [pySDCP-extended](https://github.com/kennymc-c/pySDCP-extended).
 
 ## Table of Contents <!-- omit in toc -->
 
+- [Usage](#usage)
+  - [Limitations](#limitations)
+  - [Known supported projectors](#known-supported-projectors)
+  - [Projector Setup](#projector-setup)
+    - [Activate SDCP/PJTalk](#activate-sdcppjtalk)
+    - [Change SDAP Interval (optional)](#change-sdap-interval-optional)
+  - [Manual advanced setup](#manual-advanced-setup)
 - [Entities](#entities)
-  - [Planned features](#planned-features)
 - [Commands \& attributes](#commands--attributes)
   - [Supported media player commands](#supported-media-player-commands)
   - [Supported media player attributes](#supported-media-player-attributes)
@@ -22,13 +27,6 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
   - [Attributes poller](#attributes-poller)
     - [Media player](#media-player)
     - [Lamp timer sensor](#lamp-timer-sensor)
-- [Usage](#usage)
-  - [Limitations](#limitations)
-  - [Known supported projectors](#known-supported-projectors)
-  - [Projector Setup](#projector-setup)
-    - [Activate SDCP/PJTalk](#activate-sdcppjtalk)
-    - [Change SDAP Interval (optional)](#change-sdap-interval-optional)
-  - [Manual advanced setup](#manual-advanced-setup)
 - [Installation](#installation)
   - [Run on the remote as a custom integration driver](#run-on-the-remote-as-a-custom-integration-driver)
     - [Limitations / Disclaimer](#limitations--disclaimer)
@@ -52,6 +50,55 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
 - [Contributions](#contributions)
 - [License](#license)
 
+## Usage
+
+### Limitations
+
+This integration supports one projector per integration instance. Multi device support is currently not planned for this integration but you could run the integration multiple times using different und unique driver IDs.
+
+### Known supported projectors
+
+Usually all Sony projectors that support the PJTalk / SDCP protocol should be supported.
+
+If your model is from 2016 or newer you should use the [Sony ADCP integration](https://github.com/kennymc-c/ucr-integration-sonyADCP)
+
+The following models have been tested with either pySDCP or this integration by personal testing:
+
+- VPL-HW65ES
+- VPL-VW100
+- VPL-VW260
+- VPL-VW270
+- VPL-VW285
+- VPL-VW315
+- VPL-VW320
+- VPL-VW328
+- VPL-VW365
+- VPL-VW515
+- VPL-VW520
+- VPL-VW528
+- VPL-VW665
+- VPL-XW61000
+
+Please inform me if you have a projector that is not on this list and it works with pySDCP or this integration
+
+### Projector Setup
+
+#### Activate SDCP/PJTalk
+
+Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJTalk_, activate the _Start PJ Talk Service_ checkbox and click on _Apply_.
+
+![webinterface](webinterface.png)
+
+#### Change SDAP Interval (optional)
+
+During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
+
+![advertisement](advertisement.png)
+
+### Manual advanced setup
+
+If you have set the projector to use different pj talk ports or community than the standard values, you need to use the manual advanced setup option. Here you can change the ip address, sdcp/sdap port, pj talk community and the interval of both poller intervals. Please note that when running this integration on the remote the power/mute/input poller interval is always set to 0 to deactivate this poller in order to reduce battery consumption and save cpu/memory usage.
+
 ## Entities
 
 - Media player
@@ -65,14 +112,6 @@ and a modified and extended version of [pySDCP](https://github.com/Galala7/pySDC
   - Lamp timer
     - Lamp hours will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes (can be changed in config.py) while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected
 
-### Planned features
-
-- Picture position and advanced iris commands
-  - Needs testers as I only own a VPL-VW-270 that doesn't support lens memory and iris control
-- Power/error status sensor entity
-
-Additional smaller planned improvements are labeled with #TODO in the code
-
 ## Commands & attributes
 
 ### Supported media player commands
@@ -80,7 +119,7 @@ Additional smaller planned improvements are labeled with #TODO in the code
 - Turn On/Off/Toggle
 - Mute/Unmute/Toggle
   - Used for picture muting
-- Cursor Up/Down/Left/Right/Enter
+- Cursor Up/Down/Left/Right/Enter/Back
   - The back command is also mapped to cursor left as there is no separate back command for the projector. Inside the setup menu cursor left has the same function as a typical back command.
 - Home
   - Opens the setup menu. Used instead of the menu feature because of the hard mapped home button when opening the entity from a profile page
@@ -100,26 +139,34 @@ Additional smaller planned improvements are labeled with #TODO in the code
   - Intended for the remote entity in addition to the source select feature of the media player entity
 - Calibration Presets*
   - Cinema Film 1, Cinema Film 2, Reference, TV, Photo, Game, Bright Cinema, Bright TV, User
-- Aspect Ratios*
+- Aspect Ratios* ***
   - Normal, Squeeze, Stretch**, V Stretch, Zoom 1:85, Zoom 2:35
 - Motionfow*
   - Off, Smoth High, Smoth Low, Impulse\*\*\*, Combination\***, True Cinema
-- HDR*
+- HDR* ***
   - On, Off, Auto, Toggle
-- 2D/3D Display Select**
+- 2D/3D Display Select** ***
   - 2D, 3D, Auto
-- 3D Format**
+- 3D Format** ***
   - Simulated 3D, Side-by-Side, Over-Under
 - Lamp Control*
   - High, Low
+- Advanced Iris***
+  - Off
+  - Full
+  - Limited
 - Input Lag Reduction*
   - On, Off
 - Menu Position
   - Bottom Left, Center
-- Lens Control
+- Lens Control***
   - Lens Shift Up/Down/Left/Right
   - Lens Focus Far/Near
   - Lens Zoom Large/Small
+- Picture Positions***
+  - 1,85***
+  - 2,35***
+  - Custom 1-3 (4 & 5***)
 
 \* _Only works if a video signal is present at the input_ \
 \** _May not work work with all video signals. Please refer to Sony's user manual_ \
@@ -137,7 +184,7 @@ If a command can't be processed or applied by the projector this will result in 
 
 ### Default remote entity button mappings
 
-_The default button mappings and ui pages can be customized in the web configurator under Remotes/External._
+_The default button mappings and ui pages can be customized in the web configurator._
 
 | Button                  | Short Press command | Long Press command |
 |-------------------------|---------------------|--------------------|
@@ -167,52 +214,6 @@ By default the integration checks the status of all media player entity attribut
 #### Lamp timer sensor
 
 The sensor value will be updated every time the projector is powered on or off by the remote and automatically every 30 minutes by default while the projector is powered on and the remote is not in sleep/standby mode or the integration is disconnected. The interval can be changed in the manual advanced setup.
-
-## Usage
-
-### Limitations
-
-This integration supports one projector per integration instance. Multi device support is currently not planned for this integration but you could run the integration multiple times using different und unique driver IDs.
-
-### Known supported projectors
-
-Usually all Sony projectors that support the PJTalk / SDCP protocol should be supported.
-
-The following models have been tested with either pySDCP or this integration by personal testing:
-
-- VPL-HW65ES
-- VPL-VW100
-- VPL-VW260
-- VPL-VW270
-- VPL-VW285
-- VPL-VW315
-- VPL-VW320
-- VPL-VW328
-- VPL-VW365
-- VPL-VW515
-- VPL-VW520
-- VPL-VW528
-- VPL-VW665
-
-Please inform me if you have a projector that is not on this list and it works with pySDCP or this integration
-
-### Projector Setup
-
-#### Activate SDCP/PJTalk
-
-Open the projectors web interface and go to _Setup/Advanced Menu (left menu)/PJTalk_, activate the _Start PJ Talk Service_ checkbox and click on _Apply_.
-
-![webinterface](webinterface.png)
-
-#### Change SDAP Interval (optional)
-
-During the initial setup the integration tries to query data from the projector via the SDAP advertisement protocol to generate a unique entity id. The default SDAP interval is 30 seconds. You can shorten the interval to a minimum value of 10 seconds under _Setup/Advanced Menu/Advertisement/Interval_.
-
-![advertisement](advertisement.png)
-
-### Manual advanced setup
-
-If you have set the projector to use different pj talk ports or community than the standard values, you need to use the manual advanced setup option. Here you can change the ip address, sdcp/sdap port, pj talk community and the interval of both poller intervals. Please note that when running this integration on the remote the power/mute/input poller interval is always set to 0 to deactivate this poller in order to reduce battery consumption and save cpu/memory usage.
 
 ## Installation
 

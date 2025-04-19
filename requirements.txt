@@ -1,2 +1,2 @@
 ucapi>=0.2.0
-pysdcp-extended>=0.1.0
+pysdcp-extended>=0.2.0

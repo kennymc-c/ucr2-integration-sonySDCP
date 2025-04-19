@@ -30,12 +30,12 @@ async def add_lt_sensor(ent_id: str, name: str):
 
     driver.api.available_entities.add(definition)
 
-    _LOG.info("Added projector lamp timer sensor entity")
+    _LOG.info("Added projector lamp timer sensor entity as available entity")
 
 
 
 class LtPollerController:
-    """Creates a task to regularly poll lamp times from the projector"""
+    """(Re)Starts or stops a task to regularly poll lamp times from the projector"""
 
     @staticmethod
     async def start(ent_id: str, ip: str):
@@ -76,7 +76,8 @@ class LtPollerController:
             except driver.asyncio.CancelledError:
                 _LOG.debug("Stopped lamp hours poller task")
         except ValueError:
-            _LOG.debug("Lamp hours poller task is not running")
+            _LOG.debug("Lamp hours poller task is not running or will not be stopped as the media player entity \
+has not removed or not added as a configured entity on the remote")
 
 
 
@@ -84,8 +85,6 @@ async def lt_poller(entity_id: str, interval:int, ip: str) -> None:
     """Projector lamp timer poller task. Runs only when the projector is powered on"""
     while True:
         await driver.asyncio.sleep(interval)
-        #TODO Implement check if there are too many timeouts to the projector and automatically deactivate poller and set entity status to unknown
-        #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
         if config.Setup.get("standby"):
             continue
         try:
@@ -94,6 +93,7 @@ async def lt_poller(entity_id: str, interval:int, ip: str) -> None:
                 _LOG.debug("Skip updating lamp timer. Projector is powered off")
                 continue
         except ConnectionError:
+            #TODO Implement check if there are too many timeouts/connection errors to the projector and automatically deactivate poller and set entity status to unknown
             _LOG.warning("Could not check projector power status. Connection refused")
             continue
         try:
@@ -107,15 +107,13 @@ async def lt_poller(entity_id: str, interval:int, ip: str) -> None:
 async def update_lt(entity_id: str, ip: str):
     """Update lamp timer sensor. Compare retrieved lamp hours with the last sensor value from the remote and update it if necessary"""
     try:
-        #TODO #WAIT Remove h string from value when the remote ui actually shows the unit
-        current_value = projector.get_lamp_hours(ip)+" h"
+        current_value = projector.get_lamp_hours(ip)
     except Exception as e:
         _LOG.warning("Can't get lamp hours from projector. Use empty sensor value")
         current_value = ""
         raise Exception(e) from e
 
     try:
-        #TODO #WAIT Change to configured_entities once the UC Python library supports this
         stored_states = await driver.api.available_entities.get_states()
     except Exception as e:
         raise Exception(e) from e

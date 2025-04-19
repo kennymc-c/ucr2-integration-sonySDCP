@@ -401,3 +401,4 @@ FodyWeavers.xsd
 config.json
 .venv/
 manual-build+upload.sh
+manual-register.sh

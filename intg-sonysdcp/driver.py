@@ -48,6 +48,7 @@ async def startcheck():
         except ValueError as v:
             _LOG.error(v)
 
+        #Add all entities as available entities
         if api.available_entities.contains(mp_entity_id):
             _LOG.debug("Projector media player entity with id " + mp_entity_id + " is already in storage as available entity")
         else:
@@ -76,17 +77,6 @@ async def on_r2_connect() -> None:
 
     await api.set_device_state(ucapi.DeviceStates.CONNECTED)
 
-    if config.Setup.get("setup_complete"):
-        try:
-            ip = config.Setup.get("ip")
-            mp_entity_id = config.Setup.get("id")
-            lt_entity_id = config.Setup.get("lt-id")
-        except ValueError as v:
-            _LOG.error(v)
-
-        await media_player.MpPollerController.start(mp_entity_id, ip)
-        await sensor.LtPollerController.start(lt_entity_id, ip)
-
 
 
 @api.listens_to(ucapi.Events.DISCONNECT)
@@ -97,11 +87,6 @@ async def on_r2_disconnect() -> None:
     Just reply with disconnected as there is no permanent connection to the projector that needs to be closed
     """
     _LOG.info("Received disconnect event message from remote")
-
-    if config.Setup.get("setup_complete"):
-        _LOG.info("Stopping all attributes poller tasks")
-        await media_player.MpPollerController.stop()
-        await sensor.LtPollerController.stop()
 
     await api.set_device_state(ucapi.DeviceStates.DISCONNECTED)
 
@@ -150,21 +135,24 @@ async def on_subscribe_entities(entity_ids: list[str]) -> None:
     rt_entity_id = config.Setup.get("rt-id")
     lt_entity_id = config.Setup.get("lt-id")
 
-    for entity_id in entity_ids:
-        try:
-            if entity_id == mp_entity_id:
-                await media_player.update_mp(entity_id, ip)
-            if entity_id == lt_entity_id:
-                await sensor.update_lt(entity_id, ip)
-            if entity_id == rt_entity_id:
-                await remote.update_rt(rt_entity_id, ip)
-        except OSError as o:
-            _LOG.critical(o)
-        except Exception as e:
-            _LOG.warning(e)
+    if config.Setup.get("setup_complete"):
+        for entity_id in entity_ids:
+            try:
+                if entity_id == mp_entity_id:
+                    await media_player.update_mp(entity_id, ip)
+                    await media_player.MpPollerController.start(entity_id, ip)
+                if entity_id == lt_entity_id:
+                    await sensor.update_lt(entity_id, ip)
+                    await sensor.LtPollerController.start(entity_id, ip)
+                if entity_id == rt_entity_id:
+                    await remote.update_rt(rt_entity_id, ip)
+            except OSError as o:
+                _LOG.critical(o)
+            except Exception as e:
+                _LOG.warning(e)
 
 
-
+# No event when removing an entity as configured entity. Could be a UC Python library bug
 @api.listens_to(ucapi.Events.UNSUBSCRIBE_ENTITIES)
 async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
     """
@@ -172,7 +160,17 @@ async def on_unsubscribe_entities(entity_ids: list[str]) -> None:
 
     Just show a debug log message as there is no permanent connection to the projector or clients that needs to be closed or removed.
     """
-    _LOG.info("Unsubscribe entities event for: %s", entity_ids)
+    _LOG.info("Received unsubscribe entities event for entity ids: " + str(entity_ids))
+
+    config.Setup.set("standby", False)
+    mp_entity_id = config.Setup.get("id")
+    lt_entity_id = config.Setup.get("lt-id")
+
+    if mp_entity_id in entity_ids:
+        await media_player.MpPollerController.stop()
+
+    if lt_entity_id in entity_ids:
+        await sensor.LtPollerController.stop()
 
 
 

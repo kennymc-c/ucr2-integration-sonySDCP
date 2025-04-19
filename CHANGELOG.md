@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-04-19
+
+### Breaking Changes
+
+#### ⚠️ Important: This is the final release of this integration and it is now deprecated
+
+**Development will continue in form of the new [Sony ADCP integration](https://github.com/kennymc-c/ucr-integration-sonyADCP).**
+
+- This integration is based on the more advanced ADCP protocol which supports more features and is easier to implement. The ADCP protocol is supported by most Sony home cinema projectors that were released since 2016
+- It's advised to switch to this new integration as many things in the background have been improved in comparison to this integration.
+- It also supports to control multiple devices at the same time and send native ADCP commands e.g. to send commands that are not exposed as simple commands or set a specific value for a setting.
+
+### Added
+
+- Added simple commands for advanced iris (lamp models) resp. dynamic control (laser models) and picture positions. These function are only supported by certain models and not all picture positions are supported by all models with this feature
+
+### Fixed
+
+- Removed "h" unit from the lamp sensor value string because previous firmware versions did't add the separate unit string in the remote ui. This has been fixed by UC as of firmware 2.2.2
+
+### Changed
+
+- The poller tasks will not be started if the media player and/or lamp timer are not a configured entity
+- Changed the default integration icon from uc:camera to uc:projection. This new icon is only available from firmware 2.2.0 or newer
+
 ## [0.9.0] - 2024-12-11
 
 ### Breaking changes

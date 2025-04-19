@@ -1,13 +1,13 @@
 {
     "driver_id": "sonysdcp",
-    "version": "0.9.0",
-    "release_date": "2024-12-11",
+    "version": "1.0.0",
+    "release_date": "2025-04-19",
     "min_core_api": "0.25.0",
     "name": { 
-        "en": "Sony Projector",
-        "de": "Sony Projektor"
+        "en": "Sony Projector (PJ Talk/SDCP)",
+        "de": "Sony Projektor (PJ Talk/SDCP)"
       },
-    "icon": "uc:camera",
+    "icon": "uc:projector",
     "description": {
         "en": "Integration to control Sony projectors that support the SDCP protocol.",
         "de": "Integration zum Steuern von Sony Projektoren, die das SDCP-Protokoll unterstützen."
@@ -28,8 +28,8 @@
         "id": "note",
         "label": {"en": "Notes", "de": "Hinweise"},
         "field": { "label": { "value": {
-            "en": "By clicking on next an attempt is made to automatically find the projector via SDAP advertisement service in your local network. All data is only send **every 30 seconds** by default. The interval can be shortened to a minimum of **10 seconds** in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_.\nIf you have changed any default ports and/or the PJ talk community you need to activate the manual advanced setup",
-            "de": "Durch den Klick auf Weiter wird versucht den Projektor per SDAP automatisch in deinem lokalen Netzwerk zu finden. Alle Daten werden standardmäßig nur **alle 30 Sekunden** vom Projektor gesendet. Der Interval kann im Webinterface des Projektors unter _Setup/Advanced Menu/Advertisement/Interval_ auf minimal **10 Sekunden** verkürzt werden.\nWenn du die Standard-Ports und/oder PJ Talk Community geändert hast, muss du die manuelle erweiterte Einrichtung aktivieren."
+            "en": "By clicking on next an attempt is made to **automatically find the projector** via SDAP advertisement service in your local network.  \nAll data is only send **every 30 seconds by default**. The interval can be shortened to a **minimum of 10 seconds** in the web interface of the projector under _Setup/Advanced Menu/Advertisement/Interval_.\n\nIf you have changed any default ports and/or the PJ talk community you need to activate the manual advanced setup",
+            "de": "Durch den Klick auf Weiter wird versucht den Projektor per SDAP **automatisch in deinem lokalen Netzwerk zu finden**.  \nAlle Daten werden **standardmäßig nur alle 30 Sekunden** vom Projektor gesendet. Der Interval kann im Webinterface des Projektors unter _Setup/Advanced Menu/Advertisement/Interval_ auf **minimal 10 Sekunden** verkürzt werden.\n\nWenn du die Standard-Ports und/oder PJ Talk Community geändert hast, musst du die manuelle erweiterte Einrichtung aktivieren."
             } }
         }
       },

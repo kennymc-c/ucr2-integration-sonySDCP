@@ -43,6 +43,9 @@ simple_commands = [
             "MODE_3D_FORMAT_SIMULATED_3D",
             "MODE_3D_FORMAT_SIDE_BY_SIDE",
             "MODE_3D_FORMAT_OVER_UNDER",
+            "MODE_ADVANCED_IRIS_OFF",
+            "MODE_ADVANCED_IRIS_FULL",
+            "MODE_ADVANCED_IRIS_LIMITED",
             "LAMP_CONTROL_LOW",
             "LAMP_CONTROL_HIGH",
             "INPUT_LAG_REDUCTION_ON",
@@ -57,6 +60,13 @@ simple_commands = [
             "LENS_FOCUS_NEAR",
             "LENS_ZOOM_LARGE",
             "LENS_ZOOM_SMALL",
+            "MODE_PICTURE_POSITION_1_85",
+            "MODE_PICTURE_POSITION_2_35",
+            "MODE_PICTURE_POSITION_CUSTOM_1",
+            "MODE_PICTURE_POSITION_CUSTOM_2",
+            "MODE_PICTURE_POSITION_CUSTOM_3",
+            "MODE_PICTURE_POSITION_CUSTOM_4",
+            "MODE_PICTURE_POSITION_CUSTOM_5"
             ]
 
 

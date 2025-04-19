@@ -71,6 +71,29 @@ async def add_mp(ent_id: str, name: str):
 
 
 
+async def remove_mp(ent_id: str, name: str):
+    """Function to add a media player entity with the config.MpDef class definition"""
+
+    _LOG.info("Add projector media player entity with id " + ent_id + " and name " + name)
+
+    definition = ucapi.MediaPlayer(
+        ent_id,
+        name,
+        features=config.MpDef.features,
+        attributes=config.MpDef.attributes,
+        device_class=config.MpDef.device_class,
+        options=config.MpDef.options,
+        cmd_handler=mp_cmd_handler
+    )
+
+    _LOG.debug("Projector media player entity definition created")
+
+    driver.api.configured_entities.remove(definition)
+
+    _LOG.info("Added projector media player entity as available entity")
+
+
+
 class MpPollerController:
     """Creates a task to regularly poll power/mute/input attributes from the projector"""
 
@@ -113,7 +136,8 @@ class MpPollerController:
             except driver.asyncio.CancelledError:
                 _LOG.debug("Stopped power/mute/input poller task")
         except ValueError:
-            _LOG.debug("Power/mute/input poller task is not running")
+            _LOG.debug("Power/mute/input poller task is not running or will not be stopped as the media player entity \
+has not removed or not added as a configured entity on the remote")
 
 
 
@@ -121,12 +145,10 @@ async def mp_poller(entity_id: str, interval: int, ip: str) -> None:
     """Projector attributes poller task"""
     while True:
         await driver.asyncio.sleep(interval)
-        #TODO Implement check if there are too many timeouts to the projector and automatically deactivate poller and set entity status to unknown
-        #TODO #WAIT Check if there are configured entities using the get_configured_entities api request once the UC Python library supports this
         if config.Setup.get("standby"):
             continue
         try:
-            #TODO Add check if network and remote is reachable
+            #TODO Implement check if there are too many timeouts/connection errors to the projector and automatically deactivate poller and set entity status to unknown
             await update_mp(entity_id, ip)
         except Exception as e:
             _LOG.warning(e)
@@ -144,7 +166,6 @@ async def update_mp(entity_id: str, ip: str):
         raise Exception(e) from e
 
     try:
-        #TODO #WAIT Change to configured_entities once the UC Python library supports this
         stored_states = await driver.api.available_entities.get_states()
     except Exception as e:
         raise Exception(e) from e
