@@ -41,10 +41,10 @@ def projector(ip):
 
 
 
-def get_pjinfo(ip: str):
+def get_pjinfo(ip: str, timeout: int = None):
     """Get projector information and return them"""
     try:
-        pjinfo = projector(ip).get_pjinfo()
+        pjinfo = projector(ip).get_pjinfo(timeout=timeout)
     except Exception as e:
         raise Exception(e) from e
     return pjinfo

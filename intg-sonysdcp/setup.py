@@ -18,6 +18,10 @@ import remote
 
 _LOG = logging.getLogger(__name__)
 
+#Seconds to wait for an SDAP advertisement when the ip has been entered manually. SDAP is only used to look up the model name and
+#serial number in that case, so a full advertisement interval (up to 30 seconds) is not worth blocking the setup for.
+SDAP_MANUAL_IP_TIMEOUT = 10
+
 
 
 async def init():
@@ -355,21 +359,62 @@ async def setup_projector(ip:str = ""):
 
 
 
+def set_fallback_entity_data(man_ip: str):
+    """Generate the entity id and name from the ip address when no SDAP advertisement is available.
+
+    SDAP is the only source for the model name and serial number, so they can't be queried over SDCP/TCP.
+    The ip address is the only other value that is guaranteed to be unique per projector.
+
+    :man_ip: The manually entered ip address
+    """
+    entity_id = "sonysdcp-" + man_ip.replace(".", "-").replace(":", "-")
+    entity_name = "Sony Projector"
+
+    _LOG.debug("Generated entity ID and name from the ip address")
+    _LOG.debug("ID: " + entity_id)
+    _LOG.debug("Name: " + entity_name)
+
+    config.Setup.set("ip", man_ip)
+    config.Setup.set("id", entity_id)
+    config.Setup.set("name", entity_name)
+
+    return True
+
+
+
 def set_entity_data(man_ip: str = None):
     """Retrieves data from the projector (ip, serial number, model name) via the SDAP protocol
     which can take up to 30 seconds depending on the advertisement interval setting of the projector
-    
+
     Afterwards this data will be used to generate the entity id and name and sets and stores them to the runtime storage and config file
 
     :man_ip: If empty the ip retrieved from the projector data will be used
     """
-    _LOG.info("Query data from projector via SDAP advertisement service")
-    _LOG.info("This may take up to 30 seconds depending on the advertisement interval setting of the projector")
+    if man_ip:
+        #The ip is already known, so SDAP is only needed for the model name and serial number that make up the entity id and name.
+        #SDAP advertisements are broadcast packets that don't cross routed networks (e.g. a VPN like Tailscale or a different subnet)
+        #and can also be deactivated on the projector. In those cases SDCP/TCP still works, so fall back to an ip based entity id and
+        #name after a short timeout instead of failing the whole setup.
+        _LOG.info("Query data from projector via SDAP advertisement service")
 
-    try:
-        pjinfo = projector.get_pjinfo(man_ip)
-    except Exception as e:
-        raise TimeoutError(e) from e
+        try:
+            pjinfo = projector.get_pjinfo(man_ip, timeout=SDAP_MANUAL_IP_TIMEOUT)
+        except Exception as e:
+            _LOG.warning("No SDAP advertisement received within " + str(SDAP_MANUAL_IP_TIMEOUT) + " seconds: " + str(e))
+            _LOG.warning("This is expected if SDAP advertisement is deactivated on the projector or if the projector is only "
+                         "reachable over a routed network (e.g. a VPN or a different subnet) that does not forward broadcasts")
+            _LOG.info("Continuing with the manually entered ip. The entity id and name will be generated from the ip address "
+                      "instead of the model name and serial number")
+            return set_fallback_entity_data(man_ip)
+    else:
+        #Without a manually entered ip, SDAP is the only way to discover the projector, so it is required here
+        _LOG.info("Query data from projector via SDAP advertisement service")
+        _LOG.info("This may take up to 30 seconds depending on the advertisement interval setting of the projector")
+
+        try:
+            pjinfo = projector.get_pjinfo(man_ip)
+        except Exception as e:
+            raise TimeoutError(e) from e
 
     if pjinfo != "":
         _LOG.info("Got data from projector")
