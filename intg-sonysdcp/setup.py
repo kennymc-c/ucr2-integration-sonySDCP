@@ -339,18 +339,20 @@ async def setup_projector(ip:str = ""):
     if ip == "":
         ip = config.Setup.get("ip")
 
-    #Check if sdcp port is open
-    if not port_check(ip, sdcp_port):
-        _LOG.error("Timeout while connecting to SDCP port " + str(sdcp_port) + " on " + ip)
-        _LOG.info("Please check if you entered the correct ip of the projector and if SDCP/PJTalk is active and running on port " + str(sdcp_port))
-        raise ConnectionRefusedError
-
-    #After ip has been discovered check if PJ talk community is correct
+    #Send a test command to check that the sdcp port is open and that the pj talk community is correct.
+    #The projector only serves one SDCP connection at a time and needs a moment to release it again. Probing the port with a
+    #separate throwaway connection beforehand makes the projector drop the connection of the test command that follows it,
+    #which returns an empty response. So only probe the port after the test command failed, to tell a closed port apart from
+    #a wrong pj talk community in the error message.
     try:
         projector.get_lamp_hours(ip)
     except Exception as e:
         _LOG.error(e)
-        _LOG.error("Test command failed. Please check if the entered PJ talk community \"" + config.Setup.get("pjtalk_community") + "\" is correct")
+        if not port_check(ip, sdcp_port):
+            _LOG.error("Timeout while connecting to SDCP port " + str(sdcp_port) + " on " + ip)
+            _LOG.info("Please check if you entered the correct ip of the projector and if SDCP/PJTalk is active and running on port " + str(sdcp_port))
+        else:
+            _LOG.error("Test command failed. Please check if the entered PJ talk community \"" + config.Setup.get("pjtalk_community") + "\" is correct")
         raise ConnectionRefusedError from e
 
 
