@@ -1,8 +1,12 @@
-# Sony Projector integration for Unfolded Circle Remote Devices <!-- omit in toc -->
+# Sony Projector SDCP integration for Unfolded Circle Remote Devices <!-- omit in toc -->
 
 ## ⚠️ Deprecation Warning ⚠️ <!-- omit in toc -->
 
-**This integration is deprecated and should only be used for models that are released before 2016 and don't support the newer ADCP protocol. Models that have been released after that should use the [Sony ADCP integration](https://github.com/kennymc-c/ucr-integration-sonyADCP)**
+### This integration is deprecated and no longer actively being developed
+
+### Please use the new [Sony ADCP integration](https://github.com/kennymc-c/ucr-integration-sonyADCP) which should be compatible with virtually all models that also support the SDCP protocol
+
+## <!-- omit in toc -->
 
 Integration for Unfolded Circle Remote Devices running [Unfolded OS](https://www.unfoldedcircle.com/unfolded-os) (currently [Remote Two](https://www.unfoldedcircle.com/remote-two) and the upcoming [Remote 3](https://www.unfoldedcircle.com)) to control Sony projectors that support the SDCP/PJ Talk protocol.
 
